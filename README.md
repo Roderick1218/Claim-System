@@ -1,14 +1,16 @@
 <div align="center">
 
+**English** | [简体中文](README.zh-CN.md)
+
 <img src="public/images/logo.png" alt="Wai Hong Brothers" width="320">
 
-# ClaimFlow — 公司报销 / Claim 系统
+# ClaimFlow — Company Expense Claim System
 
 **Less Paper. More Progress.**
 
-拍一张收据 → 系统自动读出商家、日期、项目和金额 → 员工确认后送审 → Admin 批准或退回
+Snap a receipt → the system reads the merchant, date, items and amounts → staff check and submit → Admin approves or rejects
 
-Laravel 13 · PHP 8.3 · MySQL / MariaDB · Blade + Tailwind CSS 4 · 本地 OCR（Tesseract）· **不用 AI、不用云端服务**
+Laravel 13 · PHP 8.3 · MySQL / MariaDB · Blade + Tailwind CSS 4 · Local OCR (Tesseract) · **No AI, no cloud services**
 
 </div>
 
@@ -16,146 +18,146 @@ Laravel 13 · PHP 8.3 · MySQL / MariaDB · Blade + Tailwind CSS 4 · 本地 OCR
 
 ---
 
-## 目录
+## Contents
 
-1. [功能介绍](#1-功能介绍)
-2. [使用方法（员工）](#2-使用方法员工)
-3. [使用方法（Admin 审批）](#3-使用方法admin-审批)
-4. [角色与权限](#4-角色与权限)
-5. [安装（Windows + XAMPP）](#5-安装windows--xampp)
-6. [本地 OCR 设置](#6-本地-ocr-设置)
-7. [测试](#7-测试)
-8. [备份与还原](#8-备份与还原)
-9. [上线注意事项](#9-上线注意事项)
-10. [已知限制](#10-已知限制)
+1. [Features](#1-features)
+2. [How to use (staff)](#2-how-to-use-staff)
+3. [How to use (Admin approval)](#3-how-to-use-admin-approval)
+4. [Roles & permissions](#4-roles--permissions)
+5. [Installation (Windows + XAMPP)](#5-installation-windows--xampp)
+6. [Local OCR setup](#6-local-ocr-setup)
+7. [Tests](#7-tests)
+8. [Backup & restore](#8-backup--restore)
+9. [Going live](#9-going-live)
+10. [Known limits](#10-known-limits)
 
 ---
 
-## 1. 功能介绍
+## 1. Features
 
-| 功能 | 说明 |
+| Feature | Description |
 |---|---|
-| 📷 **拍照 / 上传收据** | 手机可直接开相机拍；也支持 JPG、PNG、PDF，一张 Claim 可放多张收据 |
-| 🔍 **本地 OCR 自动填写** | 自动读出商家名称、地址、日期、时间、每个项目（数量 × 单价）、加料、服务费、SST、Rounding、总额；自动填入的栏位会以**黄色**标示，方便核对 |
-| 🏷️ **自动选类别** | 同一商家以前用过的类别优先；否则按关键字（例如 KFC → Food & Beverage），关键字可在 Settings 里自己加 |
-| ✅ **审批流程** | 草稿 → 送审（锁定）→ 批准 / 退回（必须写原因，员工修改后可重新送审） |
-| 🧮 **金额自动计算** | 后端重新计算每一行和总额；若和收据上印的总额不一样，会显示差额提醒 |
-| 📊 **Dashboard** | 本月统计、和上个月比较、每月报销折线图、按类别 / 项目统计、最近的 Claim |
-| 🔔 **通知** | 铃铛显示：待审批、被退回、未送出的草稿 |
-| 📑 **报表 / CSV 导出** | 按日期、类别、员工、部门、项目、金额、状态筛选，并可导出 CSV |
-| 🔐 **权限与审计** | 角色权限可在后台勾选；所有重要操作都记录在 Audit Log |
-| 📱 **手机友好** | 手机有底部导航，所有页面都适配手机屏幕 |
+| 📷 **Photo / upload receipts** | Opens the camera directly on phones; also accepts JPG, PNG and PDF. One claim can hold several receipts |
+| 🔍 **Local OCR auto-fill** | Reads the merchant name, address, date, time, every item (qty × unit price), add-ons, service charge, SST, rounding and total. Auto-filled fields are highlighted in **yellow** so they are easy to check |
+| 🏷️ **Category auto-select** | Uses the category this merchant had before; otherwise matches keywords (e.g. KFC → Food & Beverage). Keywords are editable in Settings |
+| ✅ **Approval workflow** | Draft → Submitted (locked) → Approved / Rejected (a reason is required; staff can fix and resubmit) |
+| 🧮 **Automatic amounts** | The server recalculates every line and the total, and shows a warning if it differs from the total printed on the receipt |
+| 📊 **Dashboard** | This month's figures vs last month, monthly line chart, by category / project, recent claims |
+| 🔔 **Notifications** | The bell shows claims waiting for approval, rejected claims and unsent drafts |
+| 📑 **Reports / CSV export** | Filter by date, category, employee, department, project, amount and status, then export to CSV |
+| 🔐 **Permissions & audit** | Role permissions are ticked in the admin settings; every important action is recorded in the Audit Log |
+| 📱 **Mobile friendly** | Bottom navigation on phones; every page fits a phone screen |
 
 ---
 
-## 2. 使用方法（员工）
+## 2. How to use (staff)
 
-### 第 1 步：登录
+### Step 1: Sign in
 
-打开系统网址，用公司 Email 和密码登录。
+Open the system URL and sign in with your work email and password.
 
-![登录](docs/screenshots/01-login.png)
+![Sign in](docs/screenshots/01-login.png)
 
-### 第 2 步：新增 Claim，上传收据
+### Step 2: New claim — add the receipt
 
-左边菜单按 **New Claim**（手机：首页的 **＋ New Claim** 按钮）。
+Click **New Claim** in the left menu (phone: the **＋ New Claim** button on the home page).
 
-- 手机按 **Take Photo** 直接拍；电脑按 **Choose File**，或把文件拖进框里。
-- 可以一次加多张收据；没有收据就按 **Enter manually** 手动输入。
-- 按 **Continue**，系统会读取收据（每张约几秒钟）。
+- On a phone tap **Take Photo**; on a computer click **Choose File** or drag files into the box.
+- You can add several receipts at once. No receipt? Click **Enter manually**.
+- Click **Continue** — the system reads the receipt (a few seconds each).
 
-> 💡 拍照技巧：收据摊平、光线充足、让收据占满整个画面，读得最准。
+> 💡 Photo tip: lay the receipt flat in good light and let it fill the whole photo for the best results.
 
-![新增 Claim](docs/screenshots/04-new-claim.png)
+![New claim](docs/screenshots/04-new-claim.png)
 
-### 第 3 步：核对自动填好的资料
+### Step 3: Check the auto-filled details
 
-- 左边是收据照片，右边是系统自动填好的资料。
-- **黄色栏位**是 OCR 自动填的，请对照照片检查一遍。
-- 项目、数量、单价不对的话，直接修改；也可以按 **Add item** 加项目。
-- 下方会显示系统算出的总额，以及和收据总额的差额（如果有）。
-- 按 **Save Draft** 先存草稿，或按 **Submit for approval** 送审。
+- The receipt photo is on the left, the auto-filled details on the right.
+- **Yellow fields** were filled by OCR — please compare them with the photo.
+- Fix any item, quantity or price directly, or click **Add item**.
+- The calculated total is shown at the bottom, with the difference from the receipt total (if any).
+- Click **Save Draft** to keep it for later, or **Submit for approval**.
 
-> ⚠️ 送审后 Claim 会**锁定**，审批期间不能修改。
+> ⚠️ Once submitted, the claim is **locked** and cannot be changed while it is being reviewed.
 
-![核对 OCR 资料](docs/screenshots/05-check-ocr.png)
+![Check the OCR details](docs/screenshots/05-check-ocr.png)
 
-### 第 4 步：查看进度
+### Step 4: Track progress
 
-**My Claims** 列出你所有的 Claim，可以按状态分页（All / Draft / Pending / Approved / Rejected）、搜索和筛选。
+**My Claims** lists all your claims, with status tabs (All / Draft / Pending / Approved / Rejected), search and filters.
 
-![我的 Claim](docs/screenshots/03-claims.png)
+![My claims](docs/screenshots/03-claims.png)
 
-点进去可以看到收据、明细和进度（Draft → Submitted → Approved）。
+Open a claim to see the receipt, the details and its progress (Draft → Submitted → Approved).
 
-![Claim 详情](docs/screenshots/06-claim-details.png)
+![Claim details](docs/screenshots/06-claim-details.png)
 
-### 被退回怎么办？
+### What if my claim is rejected?
 
-Dashboard 和铃铛会显示红色提示和 Admin 写的原因。点进去修改后按 **Resubmit for approval** 重新送审即可。
+The dashboard and the bell show a red notice with the reason the Admin gave. Open the claim, fix it, and click **Resubmit for approval**.
 
 ---
 
-## 3. 使用方法（Admin 审批）
+## 3. How to use (Admin approval)
 
-1. 左边菜单 **Approvals**（红色数字 = 待审批数量）。
-2. **Pending** 分页按送审时间排列，最早的在最上面；**Approved / Rejected** 分页可查看已处理的记录。
+1. Open **Approvals** in the left menu (red number = claims waiting).
+2. The **Pending** tab is ordered by submission time, oldest first; the **Approved / Rejected** tabs show claims already handled.
 
-![审批列表](docs/screenshots/07-approvals.png)
+![Approvals](docs/screenshots/07-approvals.png)
 
-3. 按 **Review** 打开 Claim，对照收据和金额：
-   - **Approve**：可选填备注；
-   - **Reject**：必须填原因，员工会看到。
-4. 处理完会自动跳到下一张待审批的 Claim。
+3. Click **Review** and compare the receipt with the amounts:
+   - **Approve** — a remark is optional;
+   - **Reject** — a reason is required, and the staff member will see it.
+4. After each decision the next pending claim opens automatically.
 
-> 🔒 任何人（包括 Admin）都**不能批准自己的 Claim**。已批准的 Claim 不能再修改。
+> 🔒 Nobody — Admin included — can **approve their own claim**. Approved claims can no longer be changed.
 
-![审批](docs/screenshots/08-review.png)
+![Review](docs/screenshots/08-review.png)
 
-### 报表
+### Reports
 
-**Reports**：按条件筛选并导出 CSV（只包含你有权限看到的资料）。
+**Reports**: filter and export to CSV (only data you are allowed to see).
 
-![报表](docs/screenshots/09-reports.png)
+![Reports](docs/screenshots/09-reports.png)
 
-### 手机版
+### Mobile
 
 <p>
-<img src="docs/screenshots/11-mobile-dashboard.png" width="260" alt="手机 Dashboard">
+<img src="docs/screenshots/11-mobile-dashboard.png" width="260" alt="Mobile dashboard">
 &nbsp;&nbsp;
-<img src="docs/screenshots/12-mobile-claims.png" width="260" alt="手机 Claim 列表">
+<img src="docs/screenshots/12-mobile-claims.png" width="260" alt="Mobile claims list">
 </p>
 
 ---
 
-## 4. 角色与权限
+## 4. Roles & permissions
 
-公司规则：**每个人只能看到自己的 Claim，只有 Admin 能看到所有人的。**
+Company rule: **everyone sees only their own claims; only Admin sees everyone's.**
 
-| 角色 | 能看到谁的 Claim | 报表 | 审批 | 系统设置 |
+| Role | Whose claims they see | Reports | Approve | Settings |
 |---|---|---|---|---|
-| Staff | 只有自己的 | ✗ | ✗ | ✗ |
-| Manager | 只有自己的 | ✗ | ✗ | ✗ |
-| Owner | 只有自己的 | ✗ | ✗ | ✗ |
-| **Admin** | **所有人的** | ✓ | ✓ | ✓ |
+| Staff | Their own only | ✗ | ✗ | ✗ |
+| Manager | Their own only | ✗ | ✗ | ✗ |
+| Owner | Their own only | ✗ | ✗ | ✗ |
+| **Admin** | **Everyone's** | ✓ | ✓ | ✓ |
 
-- 权限是按"权限项目"判断的，不是按角色名字。Admin 可以在 **Settings → Roles & Permissions** 给某个角色多勾权限，例如让 Owner 看全部（`claims.view_all`）、让 Manager 看同部门（`claims.view_department`），不用改程序。
-- 权限检查在后端执行：直接改网址里的 Claim 编号或收据编号，一样会被拒绝（403）。
+- Access is decided by permission rows, never by role name. An Admin can grant a role more in **Settings → Roles & Permissions** — e.g. let Owner see everything (`claims.view_all`) or Manager see their department (`claims.view_department`) — without changing code.
+- Checks run on the server: changing a claim or receipt ID in the URL is still refused (403).
 
-![角色与权限](docs/screenshots/10-roles.png)
+![Roles & permissions](docs/screenshots/10-roles.png)
 
-### 金额规则
+### Amount rules
 
-- `每行金额 = 数量 × 单价 − 折扣 + 税`；收据只有总额时，单价留空、直接填 **Amount**。
-- Claim 总额 = 所有行加总。以"分"为单位计算，避免小数误差。
-- 系统分开保存三个数字：OCR 读到的总额（只当提示）、员工确认的**收据总额**、系统算出的**Claim 总额**。三者不一致时会显示差额，不会互相覆盖。
-- 设定为"需要收据"的类别，没有收据就不能送审（草稿可以）。
+- `line total = qty × unit price − discount + tax`. If the receipt only shows a total, leave unit price empty and enter **Amount**.
+- Claim total = sum of all lines, calculated in cents to avoid rounding errors.
+- Three numbers are kept apart: the OCR-detected total (a hint only), the **receipt total confirmed by staff**, and the **calculated claim total**. If they differ, the difference is shown — nothing is overwritten.
+- Categories marked *Receipt required* cannot be submitted without a receipt (drafts are allowed).
 
 ---
 
-## 5. 安装（Windows + XAMPP）
+## 5. Installation (Windows + XAMPP)
 
-**需求：** PHP ≥ 8.3（扩展：pdo_mysql、mbstring、fileinfo、gd、openssl、zip；跑测试需 pdo_sqlite）、Composer、Node.js ≥ 20、MySQL / MariaDB。
+**Requirements:** PHP ≥ 8.3 (extensions: pdo_mysql, mbstring, fileinfo, gd, openssl, zip; pdo_sqlite for tests), Composer, Node.js ≥ 20, MySQL / MariaDB.
 
 ```powershell
 cd C:\xampp\htdocs
@@ -164,10 +166,10 @@ cd claim-system
 composer install
 copy .env.example .env
 php artisan key:generate
-# 编辑 .env：DB_*、APP_URL、TESSERACT_PATH、PDFTOTEXT_PATH / PDFTOPPM_PATH
+# edit .env: DB_*, APP_URL, TESSERACT_PATH, PDFTOTEXT_PATH / PDFTOPPM_PATH
 ```
 
-建立资料库（phpMyAdmin 或以下 SQL）：
+Create the database (phpMyAdmin, or):
 
 ```sql
 CREATE DATABASE claim_system CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -177,17 +179,17 @@ CREATE DATABASE claim_system CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 php artisan migrate
 php artisan db:seed --class=RolePermissionSeeder
 php artisan db:seed --class=ClaimCategorySeeder
-# 只在本地测试时用（建立示范账号，密码 password123）：
+# Local testing only (creates demo accounts, password: password123):
 php artisan db:seed --class=DemoDataSeeder
 npm install
 npm run build
 ```
 
-打开 `http://localhost/claim-system/public`，或执行 `php artisan serve` 后打开 `http://127.0.0.1:8000`。
+Open `http://localhost/claim-system/public`, or run `php artisan serve` and open `http://127.0.0.1:8000`.
 
-### 示范账号（DemoDataSeeder — 上线前请删除或停用）
+### Demo accounts (DemoDataSeeder — delete or deactivate before going live)
 
-| Email | 角色 | 部门 |
+| Email | Role | Department |
 |---|---|---|
 | admin@claim.local | admin | Accounts |
 | owner@claim.local | owner | Management |
@@ -195,9 +197,9 @@ npm run build
 | staff@claim.local | staff | Sales |
 | staff2@claim.local | staff | Operations |
 
-所有账号密码：`password123`
+Password for all: `password123`
 
-### 正式环境建立第一个 Admin（不用示范资料）
+### First Admin on a real server (no demo data)
 
 ```powershell
 php artisan tinker
@@ -208,15 +210,15 @@ $u = App\Models\User::create(['name' => 'Admin', 'email' => 'admin@company.com',
 $u->roles()->attach(App\Models\Role::where('name', 'admin')->first());
 ```
 
-### 更换 Logo
+### Changing the logo
 
-把新 Logo 存成 `public/images/logo.png`（建议透明背景 PNG）即可。系统名称在 `.env` 的 `APP_NAME` 修改。
+Save the new logo as `public/images/logo.png` (a transparent PNG works best). Change the system name with `APP_NAME` in `.env`.
 
 ---
 
-## 6. 本地 OCR 设置
+## 6. Local OCR setup
 
-### Tesseract（必装）
+### Tesseract (required)
 
 ```powershell
 winget install --id UB-Mannheim.TesseractOCR -e
@@ -224,7 +226,7 @@ tesseract --version
 tesseract --list-langs
 ```
 
-在 `.env` 填**完整路径**，并用**单引号**：
+Put the **full path** in `.env`, in **single quotes**:
 
 ```
 TESSERACT_PATH='C:\Program Files\Tesseract-OCR\tesseract.exe'
@@ -232,43 +234,43 @@ TESSERACT_LANG=eng
 TESSERACT_PSM=4,6
 ```
 
-- `TESSERACT_PSM=4,6`：每张收据用两种版面模式读取，系统自动挑最好的结果（项目加起来等于总额的优先）。
-- 马来文 / 中文收据：从 https://github.com/tesseract-ocr/tessdata 下载 `msa.traineddata` / `chi_sim.traineddata` 放进 `tessdata` 文件夹，再设定例如 `TESSERACT_LANG=eng+msa`。请用真实收据测试，语言越多英文可能越不准。
+- `TESSERACT_PSM=4,6`: each receipt is read with two page-layout modes and the best result is kept (readings whose items add up to the total win).
+- Malay / Chinese receipts: download `msa.traineddata` / `chi_sim.traineddata` from https://github.com/tesseract-ocr/tessdata into the `tessdata` folder, then set e.g. `TESSERACT_LANG=eng+msa`. Test with real receipts — more languages can make English results slightly worse.
 
-> 如果 Apache 以 Windows 服务（其他账户）执行，per-user 安装路径可能读不到，请把 Tesseract 装到 `C:\Program Files`。
+> If Apache runs as a Windows service under another account, a per-user install path may not be readable — install Tesseract to `C:\Program Files` instead.
 
-### Poppler（PDF 收据，选装）
+### Poppler (PDF receipts, optional)
 
 ```powershell
 winget install --id oschwartz10612.Poppler -e
 ```
 
-在 `.env` 设定 `PDFTOTEXT_PATH` 和 `PDFTOPPM_PATH`（`...\poppler-xx\Library\bin\` 里的 exe）。没装 Poppler 时 PDF 仍可上传和预览，只是不会自动读取。
+Set `PDFTOTEXT_PATH` and `PDFTOPPM_PATH` in `.env` (the exe files in `...\poppler-xx\Library\bin\`). Without Poppler, PDFs still upload and preview; they just aren't read automatically.
 
 ---
 
-## 7. 测试
+## 7. Tests
 
 ```powershell
 php artisan test
 ```
 
-测试使用内存 SQLite 和假的 OCR 引擎，不会动到真实资料库，也不会呼叫 Tesseract。涵盖：登录 / 停用账号、权限范围（改 ID 偷看）、审批流程、金额计算、收据上传检查、OCR 失败与重试、OCR 文字解析（各种真实收据格式）、报表筛选、CSV 导出安全等。
+Tests use in-memory SQLite and a fake OCR engine — they never touch the real database or call Tesseract. Covered: sign-in / deactivated users, permission scope (changing IDs in the URL), approval workflow, amount calculation, upload checks, OCR failure and retry, OCR text parsing (many real receipt layouts), report filters and safe CSV export.
 
 ---
 
-## 8. 备份与还原
+## 8. Backup & restore
 
-资料库和收据文件**两个都要备份**，缺一不可。
+Back up **both** the database and the receipt files — one without the other is useless.
 
-| 内容 | 位置 |
+| What | Where |
 |---|---|
-| 资料库 | `claim_system` |
-| 收据文件 | `storage/app/private/receipts/` |
-| 设定 | `.env`（含密码，请另外安全保存，不要放进 Git） |
+| Database | `claim_system` |
+| Receipt files | `storage/app/private/receipts/` |
+| Settings | `.env` (contains passwords — keep it safe, never put it in Git) |
 
 ```powershell
-# 备份（XAMPP MariaDB，端口按你的设定）
+# Backup (XAMPP MariaDB — use your own port)
 $d = Get-Date -Format yyyyMMdd-HHmm
 New-Item -ItemType Directory -Force D:\backup\claim\$d
 cmd /c "C:\xampp\mysql\bin\mysqldump.exe --user=root --port=3306 --host=127.0.0.1 --single-transaction claim_system > D:\backup\claim\$d\claim_system.sql"
@@ -276,31 +278,31 @@ Compress-Archive C:\xampp\htdocs\claim-system\storage\app\private\receipts D:\ba
 ```
 
 ```powershell
-# 还原
-cmd /c "C:\xampp\mysql\bin\mysql.exe --user=root --port=3306 --host=127.0.0.1 claim_system < D:\backup\claim\<日期>\claim_system.sql"
-Expand-Archive D:\backup\claim\<日期>\receipts.zip C:\xampp\htdocs\claim-system\storage\app\private\ -Force
+# Restore
+cmd /c "C:\xampp\mysql\bin\mysql.exe --user=root --port=3306 --host=127.0.0.1 claim_system < D:\backup\claim\<date>\claim_system.sql"
+Expand-Archive D:\backup\claim\<date>\receipts.zip C:\xampp\htdocs\claim-system\storage\app\private\ -Force
 php artisan migrate
 ```
 
-建议用 Windows 工作排程器每天自动备份，并复制到其他地方（NAS / 云端硬盘）。
+Schedule the backup daily with Windows Task Scheduler and copy it somewhere else (NAS / cloud drive).
 
 ---
 
-## 9. 上线注意事项
+## 9. Going live
 
-- `.env`：`APP_ENV=production`、`APP_DEBUG=false`、正确的 `APP_URL`、高强度资料库密码。
-- 网站根目录指向 `public/`，不要公开整个项目文件夹。
-- 收据存在 `storage/app/private`（不在 `public/` 下），只能经过权限检查后查看；**不要**为收据执行 `php artisan storage:link`。
-- `storage/` 和 `bootstrap/cache/` 需可写入。
-- 每次部署后执行：`php artisan config:cache && php artisan route:cache && php artisan view:cache`。
-- 在办公室网络以外使用时请开 HTTPS（手机相机上传也需要 HTTPS）。
-- 员工离职请"停用"账号，不要删除，旧 Claim 才会保留。
-- PHP 的 `upload_max_filesize` / `post_max_size` 要大于收据大小上限 × 每次上传张数。
+- `.env`: `APP_ENV=production`, `APP_DEBUG=false`, the real `APP_URL`, a strong database password.
+- Point the web server's document root at `public/`; never expose the whole project folder.
+- Receipts are stored in `storage/app/private` (not under `public/`) and are only served after a permission check. Do **not** run `php artisan storage:link` for receipts.
+- `storage/` and `bootstrap/cache/` must be writable.
+- After each deploy: `php artisan config:cache && php artisan route:cache && php artisan view:cache`.
+- Use HTTPS outside the office network (phone camera uploads also need HTTPS).
+- Deactivate staff who leave instead of deleting them, so their old claims are kept.
+- PHP `upload_max_filesize` / `post_max_size` must be larger than the receipt size limit × receipts per upload.
 
 ---
 
-## 10. 已知限制
+## 10. Known limits
 
-- OCR 准确度取决于照片品质；手写收据 Tesseract 读不出来，需要手动输入。
-- 目前只有一层审批（Admin），没有 Email 通知（系统内有铃铛和 Dashboard 提示）。
-- OCR 在上传时同步执行（每张几秒）；量大时可改成 Queue 背景处理。
+- OCR accuracy depends on photo quality; Tesseract cannot read handwritten receipts — type those in manually.
+- One approval level only (Admin); no email notifications (the bell and dashboard show notices in the system).
+- OCR runs during the upload (a few seconds per photo); for high volumes it could move to a background queue.

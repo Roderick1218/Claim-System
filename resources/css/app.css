@@ -1,0 +1,81 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../views';
+@source '../js';
+
+@theme {
+    --font-sans: 'Inter', 'Segoe UI', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+    /* ClaimFlow brand colours in one place: change these to re-brand the whole system.
+       brand = teal (buttons, primary actions), accent = indigo (active menu, links), navy = sidebar. */
+    --color-brand-50: #e8fbf5;
+    --color-brand-100: #c6f4e5;
+    --color-brand-200: #93e9cf;
+    --color-brand-300: #57d9b4;
+    --color-brand-400: #1fcb9a;
+    --color-brand-500: #00c896;
+    --color-brand-600: #00a982;
+    --color-brand-700: #00876a;
+    --color-brand-800: #066b56;
+    --color-brand-900: #0a5647;
+
+    --color-accent-50: #eef0ff;
+    --color-accent-100: #e0e4ff;
+    --color-accent-200: #c5ccff;
+    --color-accent-400: #7d89ff;
+    --color-accent-500: #5b6bff;
+    --color-accent-600: #4954ec;
+    --color-accent-700: #3c43c9;
+
+    --color-navy-700: #1d2a5c;
+    --color-navy-800: #142048;
+    --color-navy-900: #0b1533;
+    --color-navy-950: #081029;
+}
+
+@layer base {
+    body { font-feature-settings: 'cv11', 'ss01'; }
+    /* Amounts line up when every digit has the same width. */
+    .num { font-variant-numeric: tabular-nums; }
+    details > summary::-webkit-details-marker { display: none; }
+}
+
+@layer components {
+    .card { @apply rounded-2xl border border-slate-200/70 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.08)]; }
+    .card-header { @apply flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4; }
+    .card-title { @apply flex items-center gap-2 text-base font-semibold text-slate-900; }
+    .label { @apply mb-1.5 block text-sm font-medium text-slate-700; }
+    .hint { @apply mt-1 text-xs text-slate-500; }
+    .input { @apply block w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-100 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500; }
+
+    .btn-primary, .btn-secondary, .btn-outline, .btn-danger, .btn-success, .btn-ghost {
+        @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus:ring-4 focus:outline-none active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
+    }
+    .btn-primary { @apply bg-brand-600 text-white shadow-sm shadow-brand-600/25 hover:bg-brand-700 focus:ring-brand-100; }
+    .btn-secondary { @apply border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 focus:ring-slate-100; }
+    .btn-outline { @apply border border-brand-600 bg-white text-brand-700 hover:bg-brand-50 focus:ring-brand-100; }
+    .btn-danger { @apply bg-rose-600 text-white shadow-sm hover:bg-rose-700 focus:ring-rose-100; }
+    .btn-success { @apply bg-brand-600 text-white shadow-sm hover:bg-brand-700 focus:ring-brand-100; }
+    .btn-ghost { @apply text-slate-600 hover:bg-slate-100 focus:ring-slate-100; }
+    .btn-lg { @apply px-5 py-3 text-base; }
+
+    .table { @apply min-w-full text-sm; }
+    .table th { @apply border-b border-slate-100 bg-white px-4 py-3 text-left text-xs font-semibold text-slate-500; }
+    .table td { @apply border-b border-slate-100 px-4 py-3.5 align-middle; }
+    .table tbody tr:last-child td { @apply border-b-0; }
+
+    .badge { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap; }
+    .alert { @apply mb-4 flex items-start gap-3 rounded-xl border px-4 py-3 text-sm; }
+
+    /* Sidebar menu link (dark navy sidebar). */
+    .nav-link { @apply flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white; }
+    .nav-link.active { @apply bg-accent-600 text-white shadow-lg shadow-accent-600/30; }
+
+    /* Underlined tabs (claims list, approvals). */
+    .tab { @apply -mb-px inline-flex items-center gap-2 border-b-2 border-transparent px-1 pb-3 text-sm font-semibold whitespace-nowrap text-slate-500 transition hover:text-slate-800; }
+    .tab.active { @apply border-brand-600 text-brand-700; }
+
+    /* Value pre-filled from OCR, not yet touched by the user. */
+    .ocr-filled { @apply border-amber-400 bg-amber-50 ring-1 ring-amber-300; }
+}

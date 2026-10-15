@@ -74,10 +74,10 @@ class ClaimAuthorizationTest extends TestCase
         $this->actingAs($manager);
         $this->get(route('claims.show', $salesClaim))->assertOk();
         $this->get(route('claims.show', $opsClaim))->assertForbidden();
-        // Viewing is not editing: the edit page just shows the claim, and saving is refused.
+        // 看得到不代表能改：edit 页转去详情页，硬要保存会被拒
         $this->get(route('claims.edit', $salesClaim))->assertRedirect(route('claims.show', $salesClaim));
         $this->put(route('claims.update', $salesClaim), ['action' => 'submit'])->assertForbidden();
-        // A claim the manager may not even see stays a hard 403, also on the edit page.
+        // 连看都没权限的 claim，edit 页也照样 403，不会转去详情页
         $this->get(route('claims.edit', $opsClaim))->assertForbidden();
     }
 
@@ -118,6 +118,7 @@ class ClaimAuthorizationTest extends TestCase
         $this->get(route('settings.users.index'))->assertForbidden();
     }
 
+    // 防 mass assignment：在表单里偷塞 user_id / claim_number 不应该有作用
     public function test_claim_owner_cannot_be_changed_through_the_request(): void
     {
         $alice = $this->makeUser('staff');

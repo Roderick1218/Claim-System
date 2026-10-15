@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    // RBAC：user 多对多 role，role 多对多 permission
     public function up(): void
     {
         Schema::create('roles', function (Blueprint $table) {
@@ -22,7 +23,7 @@ return new class extends Migration
             $table->unique(['user_id', 'role_id']);
         });
 
-        // Explicit permissions: a role name alone never grants anything.
+        // 权限都是明确授予的，代码里不看 role 名字（叫 admin 也不会自动有权限）
         Schema::create('permissions', function (Blueprint $table) {
             $table->id();
             $table->string('name', 80)->unique();

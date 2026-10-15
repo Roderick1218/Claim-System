@@ -17,7 +17,7 @@
 @php
     $money = fn ($v) => 'RM '.number_format((float) $v, 2);
     $maxCat = max(1, (float) $byCategory->max('total'));
-    // "+20% vs last month" — null when there is nothing to compare with.
+    // 生成 "+20% vs last month"，上个月没数据可比就返回 null
     $delta = function (array $pair) {
         [$now, $before] = $pair;
         if ($before == 0) {
@@ -28,9 +28,10 @@
         return [($pct >= 0 ? '+ ' : '− ').abs($pct).'%', $pct >= 0 ? 'text-brand-600' : 'text-rose-500'];
     };
 
-    // Line chart geometry (0–100 box, stretched by CSS; labels are HTML so they stay readable).
+    // 折线图坐标：SVG 用 0–100 的 viewBox，由 CSS 拉伸；刻度和标签用 HTML 画，拉伸后字才不会变形
     $values = $trend->pluck('total')->values();
     $rawMax = max(1, (float) $values->max());
+    // Y 轴分 4 格，每格取 1/2/2.5/5/10 x 10^n 这种整齐的数
     $step = (function ($v) {
         $raw = $v / 4;
         $mag = 10 ** floor(log10($raw));
@@ -44,7 +45,7 @@
     $n = $values->count();
     $pts = $values->map(fn ($v, $i) => [$n > 1 ? $i / ($n - 1) * 100 : 50, 100 - $v / $chartMax * 100])->all();
     $line = 'M'.$pts[0][0].','.$pts[0][1];
-    for ($i = 0; $i < $n - 1; $i++) { // Catmull-Rom → cubic Bézier for a smooth curve
+    for ($i = 0; $i < $n - 1; $i++) { // Catmull-Rom 转三次 Bézier，画平滑曲线
         $p0 = $pts[max(0, $i - 1)]; $p1 = $pts[$i]; $p2 = $pts[$i + 1]; $p3 = $pts[min($n - 1, $i + 2)];
         $c1 = [$p1[0] + ($p2[0] - $p0[0]) / 6, min(100, $p1[1] + ($p2[1] - $p0[1]) / 6)];
         $c2 = [$p2[0] - ($p3[0] - $p1[0]) / 6, min(100, $p2[1] - ($p3[1] - $p1[1]) / 6)];
@@ -55,7 +56,7 @@
     $tick = fn ($v) => $v >= 1000 ? rtrim(rtrim(number_format($v / 1000, 1), '0'), '.').'k' : number_format($v);
 @endphp
 
-{{-- Things that need the user's action come first --}}
+{{-- 需要用户处理的事项放最上面：待审批、被拒绝的 claim --}}
 @if ($toApproveCount)
     <a href="{{ route('approvals.index') }}" class="mb-3 flex items-center gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 transition hover:bg-amber-100">
         <div class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-amber-500 text-white"><x-icon name="check-badge" class="h-6 w-6" /></div>
@@ -76,7 +77,7 @@
     </a>
 @endforeach
 
-{{-- Stat cards --}}
+{{-- 统计卡片 --}}
 <div class="grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-4">
     @foreach ([
         ['Total Claims', $stats['total'][0], 'this month', $delta($stats['total']), 'receipt', 'bg-accent-50 text-accent-600', route('claims.index')],
@@ -101,7 +102,7 @@
 <a href="{{ route('claims.create') }}" class="btn-primary btn-lg mt-4 w-full lg:hidden"><x-icon name="plus" class="h-5 w-5" /> New Claim</a>
 
 <div class="mt-5 grid gap-5 lg:grid-cols-2">
-    {{-- Claim summary chart --}}
+    {{-- 每月金额走势图 --}}
     <div class="card">
         <div class="card-header border-0 pb-0">
             <h2 class="card-title">Claim Summary</h2>
@@ -146,7 +147,7 @@
         </div>
     </div>
 
-    {{-- Recent claims --}}
+    {{-- 最近的 claim --}}
     <div class="card overflow-hidden">
         <div class="card-header border-0 pb-1">
             <h2 class="card-title">Recent Claims</h2>
@@ -168,7 +169,7 @@
 </div>
 
 <div class="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-    {{-- Spending by category --}}
+    {{-- 本月按类别 --}}
     <div class="card">
         <div class="card-header"><h2 class="card-title"><x-icon name="tag" class="h-5 w-5 text-slate-400" /> This month by category</h2></div>
         <div class="space-y-4 p-5">
@@ -183,6 +184,7 @@
         </div>
     </div>
 
+    {{-- 本月按项目 --}}
     @if ($byProject->isNotEmpty())
         <div class="card">
             <div class="card-header"><h2 class="card-title"><x-icon name="folder" class="h-5 w-5 text-slate-400" /> This month by project</h2></div>
@@ -194,6 +196,7 @@
         </div>
     @endif
 
+    {{-- OCR 读不出的收据 --}}
     @if ($receiptAttention->isNotEmpty())
         <div class="card">
             <div class="card-header"><h2 class="card-title"><x-icon name="exclamation" class="h-5 w-5 text-rose-500" /> Receipts OCR couldn't read</h2></div>
@@ -208,6 +211,7 @@
         </div>
     @endif
 
+    {{-- 我的 draft --}}
     <div class="card flex flex-col justify-between overflow-hidden bg-gradient-to-br from-navy-900 to-navy-700 p-5 text-white">
         <div>
             <div class="text-sm text-slate-300">My drafts</div>

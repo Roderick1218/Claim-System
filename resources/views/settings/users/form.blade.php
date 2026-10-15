@@ -51,6 +51,7 @@
         </div>
     </div>
 
+    {{-- 没勾选时 checkbox 不会提交，用 hidden 的 0 垫底 --}}
     <label class="flex items-center gap-2 text-sm">
         <input type="hidden" name="is_active" value="0">
         <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $user->is_active))> Active (can log in)

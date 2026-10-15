@@ -30,7 +30,7 @@ class ReceiptTest extends TestCase
         $this->assertSame('image/jpeg', $receipt->mime_type);
         $this->assertSame(64, strlen($receipt->file_hash));
         $this->assertStringStartsWith('receipts/', $receipt->file_path);
-        $this->assertStringNotContainsString('my receipt', $receipt->file_path); // random internal name
+        $this->assertStringNotContainsString('my receipt', $receipt->file_path); // 存档用随机名，不用用户的原文件名
         Storage::disk('local')->assertExists($receipt->file_path);
         $this->assertSame('completed', $receipt->ocr_status);
         $this->assertStringContainsString('TOTAL 4.00', $receipt->ocr_text);
@@ -55,7 +55,7 @@ class ReceiptTest extends TestCase
                 && $p['items'][0]['unit_price'] === '2.00'
                 && $p['items'][0]['receipt_id'] === $claim->receipts->first()->id);
 
-        // Only shown in the form — the database stays empty until the user saves.
+        // 只显示在表单里，用户保存之前数据库还是空的
         $claim->refresh();
         $this->assertNull($claim->merchant_name);
         $this->assertNull($claim->expense_date);
@@ -72,7 +72,7 @@ class ReceiptTest extends TestCase
         $this->get(route('claims.edit', $claim))
             ->assertOk()
             ->assertSee('value="LOT LG-23, AOEN BIG SUBANG JAYA, NO 3 JALAN SS16/1, 47500 SUBANG JAYA, SELANGOR" class="input ocr-filled"', false);
-        $this->assertNull($claim->fresh()->location); // not saved until the user saves
+        $this->assertNull($claim->fresh()->location); // 用户还没保存
 
         $claim->forceFill(['location' => 'Office'])->save();
         $this->get(route('claims.edit', $claim))
@@ -104,7 +104,7 @@ class ReceiptTest extends TestCase
             ->assertSee('value="ABC TRADING" class="input ocr-filled"', false)
             ->assertViewHas('prefill', fn ($p) => $p['items'][0]['item_name'] === 'Mineral Water');
 
-        // Nothing changed in the database.
+        // 数据库里的值没被动过
         $this->assertSame('Old Name', $claim->fresh()->merchant_name);
         $this->assertSame(['Old item'], $claim->fresh()->items->pluck('item_name')->all());
     }
@@ -120,7 +120,7 @@ class ReceiptTest extends TestCase
         $this->post(route('receipts.ocr.retry', $claim->receipts->first()))
             ->assertRedirect(route('claims.edit', ['claim' => $claim, 'refill' => 1]));
 
-        $this->assertSame('Typed by hand', $claim->fresh()->merchant_name); // still only in the form
+        $this->assertSame('Typed by hand', $claim->fresh()->merchant_name); // 新读到的值只在表单里
     }
 
     public function test_saved_items_that_do_not_add_up_trigger_a_refill_suggestion(): void
@@ -128,7 +128,7 @@ class ReceiptTest extends TestCase
         $user = $this->makeUser();
         $claim = $this->uploadNewClaim($user, [UploadedFile::fake()->image('r.png', 400, 400)]);
         $claim->items()->create(['item_name' => 'Wrong', 'quantity' => 1, 'unit_price' => 3, 'line_total' => 3]);
-        $claim->forceFill(['total_amount' => '3.00'])->save(); // OCR reading adds up to 4.00
+        $claim->forceFill(['total_amount' => '3.00'])->save(); // OCR 读出来的加起来是 4.00
 
         $this->get(route('claims.edit', $claim))
             ->assertViewHas('ocrSuggestsRefill', true)
@@ -153,7 +153,7 @@ class ReceiptTest extends TestCase
 
     public function test_unreadable_date_is_flagged_for_the_user(): void
     {
-        $this->ocr->text = "ABC TRADING\nMineral Water 2 x 2.00 4.00\nTOTAL 4.00"; // no date on this reading
+        $this->ocr->text = "ABC TRADING\nMineral Water 2 x 2.00 4.00\nTOTAL 4.00"; // 这次读不到日期
         $user = $this->makeUser();
         $claim = $this->uploadNewClaim($user, [UploadedFile::fake()->image('r.png', 400, 400)]);
 
@@ -194,7 +194,7 @@ class ReceiptTest extends TestCase
         $this->post(route('claims.store'), ['receipts' => [UploadedFile::fake()->createWithContent('fake.jpg', 'not really an image')]])
             ->assertSessionHasErrors('receipts.0');
         $this->assertSame(0, Receipt::count());
-        $this->assertSame(0, Claim::count()); // no orphan draft is created
+        $this->assertSame(0, Claim::count()); // 验证失败时不会留下空的 draft
     }
 
     public function test_oversized_file_is_rejected(): void
@@ -215,7 +215,7 @@ class ReceiptTest extends TestCase
 
         $this->assertSame('failed', $receipt->ocr_status);
         $this->assertNotEmpty($receipt->ocr_error);
-        $this->assertStringNotContainsString(storage_path(), $receipt->ocr_error);
+        $this->assertStringNotContainsString(storage_path(), $receipt->ocr_error); // 错误信息不能泄露服务器路径
         Storage::disk('local')->assertExists($receipt->file_path);
 
         $this->ocr->fail = false;
@@ -250,6 +250,7 @@ class ReceiptTest extends TestCase
         $this->assertDatabaseHas('receipts', ['id' => $receipt->id]);
     }
 
+    // 重复的收据只给 warning 并指出是哪张 claim，不直接拦，由用户自己判断
     public function test_duplicate_file_produces_a_warning_but_is_not_rejected(): void
     {
         $user = $this->makeUser();
@@ -263,6 +264,7 @@ class ReceiptTest extends TestCase
         $this->assertSame(2, Receipt::count());
     }
 
+    // 万一数据库里的 file_path 被改成 ../ 之类，也不能读到 receipts 目录以外的文件
     public function test_tampered_file_path_cannot_read_other_server_files(): void
     {
         $user = $this->makeUser();

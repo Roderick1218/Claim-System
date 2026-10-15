@@ -19,9 +19,10 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
-    /** Mirrors the DB default so a freshly created instance is active before it is re-fetched. */
+    // 跟数据库默认值保持一致，否则刚 new 出来还没重新读取的实例 is_active 会是 null
     protected $attributes = ['is_active' => true];
 
+    // 一个请求里会多次判断权限，查一次就缓存起来
     /** @var array<int, string>|null */
     private ?array $permissionCache = null;
 
@@ -49,6 +50,7 @@ class User extends Authenticatable
         return $this->hasMany(Claim::class);
     }
 
+    // 用户所有角色的权限合集
     /** @return array<int, string> */
     public function permissionNames(): array
     {
@@ -77,7 +79,7 @@ class User extends Authenticatable
         return $this->roles->contains('name', $role);
     }
 
-    /** Call after changing this user's roles in the same request. */
+    // 同一个请求里改了这个用户的角色后要调用，不然后面拿到的还是旧权限
     public function flushPermissionCache(): void
     {
         $this->permissionCache = null;

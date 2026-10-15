@@ -49,7 +49,10 @@ class ReportController extends Controller
         ]);
     }
 
-    /** Same filter + same permission scope as the on-screen report. */
+    /**
+     * 导出的 CSV 跟画面上的报表用同一套筛选和权限范围。
+     * 不然改一下 URL 参数就能把看不到的 claim 一起导出来，等于绕过权限。
+     */
     public function export(Request $request, ClaimFilter $filter, AuditLogger $audit)
     {
         $filters = $filter->fromRequest($request);
@@ -60,7 +63,8 @@ class ReportController extends Controller
 
         return response()->streamDownload(function () use ($query) {
             $out = fopen('php://output', 'w');
-            fwrite($out, "\xEF\xBB\xBF"); // UTF-8 BOM so Excel shows Chinese / Malay text correctly
+            // 加 UTF-8 BOM，否则 Excel 双击打开会当成本地编码，中文变乱码
+            fwrite($out, "\xEF\xBB\xBF");
             fputcsv($out, [
                 'No', 'Claim Number', 'Expense Date', 'Expense Time', 'Merchant', 'Category', 'Project', 'Employee',
                 'Employee Code', 'Department', 'Business Purpose', 'Location', 'Currency', 'Subtotal',
@@ -69,6 +73,7 @@ class ReportController extends Controller
             ]);
 
             $no = 0;
+            // 用 bcadd 累加字符串金额，避免 float 误差让 Grand Total 差几分钱
             $totals = ['subtotal_amount' => '0', 'discount_amount' => '0', 'tax_amount' => '0', 'total_amount' => '0', 'receipt_total_amount' => '0'];
 
             $query->chunk(500, function ($claims) use ($out, &$no, &$totals) {
@@ -106,7 +111,7 @@ class ReportController extends Controller
                 }
             });
 
-            // Same 24 columns as the header: label under No, sums under the amount columns.
+            // 合计行同样 24 栏，跟表头对齐：标签放在 No 那栏，各金额栏放总和
             fputcsv($out, [
                 'Grand Total', '', '', '', '', '', '', '', '', '', '', '', '',
                 $totals['subtotal_amount'], $totals['discount_amount'], $totals['tax_amount'],
@@ -118,7 +123,10 @@ class ReportController extends Controller
         }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
-    /** Prevents spreadsheet formula injection (=, +, -, @ at the start of a text cell). */
+    /**
+     * 防 CSV 公式注入：文字以 = + - @ 开头时 Excel 会当公式执行，前面补一个单引号。
+     * 纯数字（例如负数金额）不处理。
+     */
     public function csvSafe(mixed $value): string
     {
         $value = (string) $value;

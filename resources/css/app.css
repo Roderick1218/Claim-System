@@ -7,8 +7,8 @@
 
 @theme {
     --font-sans: 'Inter', 'Segoe UI', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
-    /* ClaimFlow brand colours in one place: change these to re-brand the whole system.
-       brand = teal (buttons, primary actions), accent = indigo (active menu, links), navy = sidebar. */
+    /* ClaimFlow 品牌色都在这里，改这里整个系统就换色。
+       brand = 青绿（按钮、主要操作），accent = 靛蓝（当前菜单、链接），navy = sidebar 底色。 */
     --color-brand-50: #e8fbf5;
     --color-brand-100: #c6f4e5;
     --color-brand-200: #93e9cf;
@@ -36,7 +36,7 @@
 
 @layer base {
     body { font-feature-settings: 'cv11', 'ss01'; }
-    /* Amounts line up when every digit has the same width. */
+    /* 数字等宽，金额才会对齐 */
     .num { font-variant-numeric: tabular-nums; }
     details > summary::-webkit-details-marker { display: none; }
 }
@@ -68,14 +68,14 @@
     .badge { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap; }
     .alert { @apply mb-4 flex items-start gap-3 rounded-xl border px-4 py-3 text-sm; }
 
-    /* Sidebar menu link (dark navy sidebar). */
+    /* sidebar 菜单链接（深蓝底） */
     .nav-link { @apply flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white; }
     .nav-link.active { @apply bg-accent-600 text-white shadow-lg shadow-accent-600/30; }
 
-    /* Underlined tabs (claims list, approvals). */
+    /* 下划线 tab（claim 列表、审批页） */
     .tab { @apply -mb-px inline-flex items-center gap-2 border-b-2 border-transparent px-1 pb-3 text-sm font-semibold whitespace-nowrap text-slate-500 transition hover:text-slate-800; }
     .tab.active { @apply border-brand-600 text-brand-700; }
 
-    /* Value pre-filled from OCR, not yet touched by the user. */
+    /* OCR 预填、用户还没动过的栏位 */
     .ocr-filled { @apply border-amber-400 bg-amber-50 ring-1 ring-amber-300; }
 }

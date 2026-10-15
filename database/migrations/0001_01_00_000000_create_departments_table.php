@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    // 部门表。时间戳排在 users 之前，因为 users.department_id 要指向它
     public function up(): void
     {
         Schema::create('departments', function (Blueprint $table) {

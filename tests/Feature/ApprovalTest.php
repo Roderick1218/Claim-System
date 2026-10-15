@@ -34,9 +34,9 @@ class ApprovalTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'claim.submitted', 'entity_id' => $claim->id]);
 
         $this->actingAs($staff);
-        // Opening the edit page (e.g. browser Back after submitting) shows the claim instead of a 403 ...
+        // 打开 edit 页（例如 submit 后按 Back）会转去详情页，不是 403
         $this->get(route('claims.edit', $claim))->assertRedirect(route('claims.show', $claim))->assertSessionHas('success', fn ($m) => str_contains($m, 'locked'));
-        // ... but changing it is still refused.
+        // 但真的要改或删还是会被拒
         $this->put(route('claims.update', $claim), ['action' => 'draft'])->assertForbidden();
         $this->delete(route('claims.destroy', $claim))->assertForbidden();
         $this->get(route('claims.show', $claim))->assertOk()->assertSee('waiting for approval');
@@ -73,7 +73,7 @@ class ApprovalTest extends TestCase
             $this->put(route('claims.update', $claim), ['action' => 'submit'])->assertForbidden();
             $this->delete(route('claims.destroy', $claim))->assertForbidden();
         }
-        $this->post(route('claims.approve', $claim))->assertForbidden(); // already approved
+        $this->post(route('claims.approve', $claim))->assertForbidden(); // 已经 approved，不能再批一次
     }
 
     public function test_reject_needs_a_reason_then_staff_fixes_and_resubmits(): void
@@ -90,7 +90,7 @@ class ApprovalTest extends TestCase
         $this->assertSame('rejected', $claim->status);
         $this->assertDatabaseHas('audit_logs', ['action' => 'claim.rejected', 'entity_id' => $claim->id]);
 
-        // The staff sees why, can edit again and resubmit.
+        // 员工看得到 reject 原因，可以再编辑然后重新 submit
         $this->actingAs($staff)->get(route('dashboard'))->assertSee('Receipt date is unreadable');
         $this->get(route('claims.edit', $claim))->assertOk()->assertSee('Resubmit for approval');
         $this->put(route('claims.update', $claim), [
@@ -133,7 +133,8 @@ class ApprovalTest extends TestCase
     public function test_back_link_on_a_claim_never_points_to_its_locked_edit_page(): void
     {
         $staff = $this->makeUser();
-        $claim = $this->submittedClaimBy($staff); // last page visited before show = the edit/update flow
+        // submit 完上一页就是 edit，详情页的「返回」不能指回那个已锁的 edit 页
+        $claim = $this->submittedClaimBy($staff);
 
         $this->actingAs($staff)
             ->from(route('claims.edit', $claim))

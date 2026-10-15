@@ -12,9 +12,8 @@ use Symfony\Component\Process\Process;
 use Throwable;
 
 /**
- * Local OCR only (Tesseract, optionally Poppler for PDFs). No cloud / AI service is called.
- *
- * Any failure marks the receipt as `failed` with a short, safe message; the claim itself is never affected.
+ * 只用本机 OCR（Tesseract，PDF 另外可用 Poppler），不调用任何云端 / AI 服务。
+ * 出错只会把收据标成 failed 并给一句可以让用户看的提示，claim 本身不受影响。
  */
 class OcrService
 {
@@ -42,7 +41,7 @@ class OcrService
                 'processed_at' => now(),
             ])->save();
         } catch (Throwable $e) {
-            // Full detail stays in the server log; the user only sees a safe summary.
+            // 详细错误只写 server log，用户那边只给概括的提示
             Log::warning('Receipt OCR failed', ['receipt_id' => $receipt->id, 'error' => $e->getMessage()]);
 
             $receipt->forceFill([
@@ -57,7 +56,7 @@ class OcrService
         return $receipt;
     }
 
-    /** Overridable in tests. */
+    // 保持 protected，测试里会 override 掉，不用真的跑 Tesseract
     protected function extractText(string $absolutePath, string $mime): string
     {
         if ($mime === 'application/pdf') {
@@ -67,19 +66,17 @@ class OcrService
         return $this->ocrImage($absolutePath);
     }
 
-    /**
-     * OCRs the original photo and several prepared copies (rotated, cropped to the paper, scaled)
-     * and keeps the best-scoring text. No single version is always best, so all are tried.
-     */
+    // 原图加几个处理过的版本（转正、裁到纸张、放大）都跑一次 OCR，取分数最高的。
+    // 没有哪个版本永远最好，所以全部都试
     private function ocrImage(string $imagePath): string
     {
         $modes = (array) config('claims.ocr.psm', [4]);
 
-        // First reading outside the try: a missing / broken Tesseract must fail loudly.
+        // 第一次放在 try 外面：Tesseract 没装或坏了要直接报错，不能被吞掉
         $best = $this->tesseract($imagePath, $modes[0]);
         $bestScore = $this->score($best);
-        // Note: no early stop on the first reading whose items add up — tried 2026-10-12: amounts were right
-        // but the header was worse (ZUS read as "US COFFEE (¥)", year 2026 as 2025). All readings are compared.
+        // 不要在第一个加得到总额的结果就提早停。2026-10-12 试过：金额是对了，但表头反而更差
+        // （ZUS 读成 "US COFFEE (¥)"，2026 年读成 2025），所以每个结果都要比
 
         $tmpDir = storage_path('app/private/ocr-tmp');
         File::ensureDirectoryExists($tmpDir);
@@ -90,7 +87,7 @@ class OcrService
             foreach ([$imagePath, ...$variants] as $n => $image) {
                 foreach ($modes as $m => $psm) {
                     if ($n === 0 && $m === 0) {
-                        continue; // already done above
+                        continue; // 上面已经跑过
                     }
                     $text = $this->tesseract($image, $psm);
                     $score = $this->score($text);
@@ -100,7 +97,7 @@ class OcrService
                 }
             }
         } catch (OcrFailedException $e) {
-            // e.g. a timeout on one variant — keep the best result so far.
+            // 例如某个版本 timeout，用目前最好的结果就行
             Log::info('Receipt OCR variant skipped', ['error' => $e->getMessage()]);
         } catch (Throwable $e) {
             Log::info('Receipt image preparation skipped', ['error' => $e->getMessage()]);
@@ -114,9 +111,8 @@ class OcrService
     }
 
     /**
-     * Readability score. By far the strongest signal is arithmetic: when the items read from the text add up
-     * exactly to the TOTAL, the reading is almost certainly right. Then amounts, items and real words count up,
-     * noise lines count down.
+     * OCR 结果的可读性分数。最强的信号是算术：项目刚好加到 TOTAL，基本上就是读对了。
+     * 其次是金额、项目数和正常单词加分，杂讯行扣分。
      */
     public function score(string $text): int
     {
@@ -153,7 +149,7 @@ class OcrService
             $psm = 4;
         }
 
-        // Every argument is passed separately — nothing is concatenated into a shell command.
+        // 参数逐个传给 Process，不拼 shell 字符串，路径里有空格或特殊字符也不怕被注入
         return $this->run([$binary, $imagePath, 'stdout', '-l', $languages, '--psm', (string) $psm], 'OCR engine');
     }
 
@@ -167,16 +163,16 @@ class OcrService
             throw new OcrFailedException('PDF reading is not set up on this server yet. Please enter the details manually, or upload a JPG/PNG photo of the receipt.');
         }
 
-        // 1) Text layer (digital PDFs).
+        // 先试电子 PDF 的文字层
         if ($pdftotext !== '') {
             $text = $this->run([$pdftotext, '-layout', '-f', '1', '-l', (string) $maxPages, $pdfPath, '-'], 'PDF text reader');
-            // pdftotext prints only form feeds (\f) for image-only pages; trim() alone would not strip those.
+            // 纯图片的页面 pdftotext 只会输出换页符 \f，光靠 trim() 去不掉
             if (preg_replace('/\s+/u', '', $text) !== '') {
                 return $text;
             }
         }
 
-        // 2) Scanned PDF: rasterise the first pages, then OCR each image.
+        // 扫描的 PDF：前几页转成图片再逐页 OCR
         if ($pdftoppm === '') {
             throw new OcrFailedException('This PDF has no text layer and scanned-PDF OCR is not set up. Please enter the details manually.');
         }
@@ -212,7 +208,7 @@ class OcrService
         }
 
         if (! $process->isSuccessful()) {
-            // Exit code 1 + "not recognized"/"cannot find" = binary missing; keep message generic for users.
+            // exit code 1 加 "not recognized" / "cannot find" 通常是程序没装；stderr 只进 log，给用户的提示保持笼统
             Log::warning("{$toolLabel} exited with an error", [
                 'exit_code' => $process->getExitCode(),
                 'stderr' => Str::limit($process->getErrorOutput(), 1000),

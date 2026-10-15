@@ -1,4 +1,4 @@
-{{-- Coloured icon tile for a claim, picked from its category. $c = claim, $size = tailwind size classes --}}
+{{-- claim 的彩色图标，按 category 名称挑。需要 $c（claim），$size 可选（Tailwind 尺寸 class） --}}
 @php
     $name = mb_strtolower($c->category?->name ?? '');
     [$icon, $tone] = match (true) {

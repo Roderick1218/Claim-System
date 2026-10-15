@@ -7,12 +7,11 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
-/**
- * Builds the claim query for the list, reports and CSV export.
- * Always starts from Claim::visibleTo() so filters can only narrow the user's permitted scope, never widen it.
- */
+// 列表、报表和 CSV 导出共用的查询条件。一定从 Claim::visibleTo() 开始，
+// 筛选只能在用户本来看得到的范围里再缩小，不可能靠改 URL 参数看到别人的单
 class ClaimFilter
 {
+    // 白名单，用户传什么 sort 都只能映射到这几个字段，不会拼进 SQL
     public const SORTABLE = [
         'claim_number' => 'claims.claim_number',
         'expense_date' => 'claims.expense_date',
@@ -32,6 +31,7 @@ class ClaimFilter
 
         if ($q = trim((string) ($filters['q'] ?? ''))) {
             $query->where(function (Builder $w) use ($q) {
+                // 转义 % 和 _，用户输入的这两个字符按字面搜索
                 $like = '%'.addcslashes($q, '%_\\').'%';
                 $w->where('claims.claim_number', 'like', $like)
                     ->orWhere('claims.merchant_name', 'like', $like)
@@ -73,6 +73,7 @@ class ClaimFilter
             $query->where('claims.status', $filters['status']);
         }
 
+        // 默认按创建时间倒序；最后再按 id 排一次，值相同的单分页时顺序才稳定
         $sort = self::SORTABLE[$filters['sort'] ?? ''] ?? 'claims.created_at';
         $dir = ($filters['dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
 

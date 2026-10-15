@@ -14,7 +14,7 @@ class ClaimService
         private AuditLogger $audit,
     ) {}
 
-    /** Creates an empty draft owned by $owner (used before receipts are uploaded / OCR'd). */
+    // 先开一张空的 draft，收据上传和 OCR 都要挂在一张单下面
     public function createDraft(User $owner, array $attributes = []): Claim
     {
         return DB::transaction(function () use ($owner, $attributes) {
@@ -33,14 +33,15 @@ class ClaimService
     }
 
     /**
-     * Saves header fields + items. Amounts are always recalculated here; any totals sent by the browser are ignored.
+     * 保存表头和明细。金额一律在这里重新计算，浏览器传来的合计不采用，免得前端 JS 被改了金额就跟着变。
      *
-     * @param  array  $data  validated claim fields
-     * @param  array  $items  validated item rows
+     * @param  array  $data  验证过的表头字段
+     * @param  array  $items  验证过的明细行
      */
     public function save(Claim $claim, array $data, array $items, User $actor, bool $submit): Claim
     {
         return DB::transaction(function () use ($claim, $data, $items, $actor, $submit) {
+            // 重新读取并锁行，防止同时有人在审批或另一个窗口也在保存
             $claim = Claim::query()->lockForUpdate()->findOrFail($claim->id);
             $before = $this->snapshot($claim->load('items'));
 
@@ -55,13 +56,14 @@ class ClaimService
             }
 
             $claim->fill($data);
-            // Amounts are deliberately not mass-assignable; only the calculator may set them.
+            // 金额故意不在 fillable 里，只能由 calculator 的结果 forceFill 进去
             $claim->forceFill($this->calculator->calculateTotals($lines));
             $claim->updated_by = $actor->id;
 
+            // 已 submitted 的单被 manage_all 修改时不算重新提交，状态不变
             $submitting = $submit && $claim->isEditableByOwner();
             if ($submitting) {
-                // (Re)submission: the previous rejection stays in the audit log, not on the claim.
+                // 重新提交时清掉上次的审批结果，被 reject 的记录留在 audit log 里查得到
                 $claim->forceFill([
                     'status' => Claim::STATUS_SUBMITTED,
                     'submitted_at' => now(),
@@ -73,9 +75,10 @@ class ClaimService
 
             $claim->save();
 
+            // 明细整批删掉重建，比逐行对比更新简单，反正前后差异会记进 audit log
             $claim->items()->delete();
             foreach ($lines as $line) {
-                unset($line['gross']);
+                unset($line['gross']); // gross 只用来算 subtotal，表里没有这个字段
                 $claim->items()->create($line);
             }
 
@@ -92,7 +95,8 @@ class ClaimService
         });
     }
 
-    /** Approve (optional remark) or reject (reason required). Only submitted claims; checked again under a row lock. */
+    // approve 时备注可选，reject 时必须写原因（controller 那边验证）。
+    // 锁行后再确认一次是 submitted，避免两个审批人同时操作，或者审批途中单被改掉
     public function review(Claim $claim, User $reviewer, bool $approve, ?string $note): Claim
     {
         return DB::transaction(function () use ($claim, $reviewer, $approve, $note) {
@@ -121,10 +125,11 @@ class ClaimService
     {
         DB::transaction(function () use ($claim) {
             $this->audit->log('claim.deleted', 'claim', $claim->id, $this->snapshot($claim->load('items')), null);
-            $claim->delete(); // soft delete — receipts and items are kept
+            $claim->delete(); // 软删除，收据和明细都保留，方便日后查账
         });
     }
 
+    // 给 audit log 用的快照，日期时间统一格式化，前后对比时不会因为格式不同被当成改动
     private function snapshot(Claim $claim): array
     {
         $data = $claim->only([

@@ -7,9 +7,9 @@ use App\Models\Role;
 use Illuminate\Database\Seeder;
 
 /**
- * Idempotent: creates missing roles/permissions; only sets a role's permissions when the role is first created.
- * A permission added in a later version is given to its default roles once, when it is first created,
- * so admins' own changes to existing roles are never overwritten.
+ * 可以重复跑。缺的 role / permission 才会建，role 的权限只在第一次建立时设定。
+ * 之后版本新增的 permission，只在它第一次被建立时补给默认的 role 一次，
+ * admin 自己在后台调过的 role 权限不会被盖掉。
  */
 class RolePermissionSeeder extends Seeder
 {
@@ -17,8 +17,8 @@ class RolePermissionSeeder extends Seeder
     {
         $roles = [
             'staff' => ['Create and manage own claims', []],
-            // Company rule: everyone sees only their own claims; only Admin sees everyone's.
-            // Wider access can still be granted per role in Settings → Roles & Permissions.
+            // 公司规定：每个人只看得到自己的 claim，只有 Admin 能看全部。
+            // 真的需要的话，可以在 Settings → Roles & Permissions 按 role 另外开权限。
             'manager' => ['Create and manage own claims', []],
             'admin' => ['Manage users, categories, projects, approve claims', [
                 Permission::CLAIMS_VIEW_ALL, Permission::CLAIMS_MANAGE_ALL, Permission::CLAIMS_APPROVE, Permission::REPORTS_VIEW,

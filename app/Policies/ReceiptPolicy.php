@@ -5,7 +5,7 @@ namespace App\Policies;
 use App\Models\Receipt;
 use App\Models\User;
 
-/** Receipt access always follows access to its claim. */
+// 收据本身不单独设权限，一律跟着所属报销单走；单被删了收据也就不能再看
 class ReceiptPolicy
 {
     public function __construct(private ClaimPolicy $claims) {}
@@ -26,7 +26,7 @@ class ReceiptPolicy
 
     public function delete(User $user, Receipt $receipt): bool
     {
-        // Receipts can only be removed while the claim is a draft or was rejected (never once it was submitted).
+        // 只有 draft / rejected 时才能删收据，提交之后审批人看到的凭证不能再被抽走
         return $this->retryOcr($user, $receipt) && $receipt->claim->isEditableByOwner();
     }
 }

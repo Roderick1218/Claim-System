@@ -24,10 +24,12 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
+        // 用到数据库的测试都要有 role / permission 和默认 category，factory 的 withRole() 靠这个
         if (in_array(RefreshDatabase::class, class_uses_recursive($this))) {
             $this->seed([RolePermissionSeeder::class, ClaimCategorySeeder::class]);
         }
 
+        // 收据不写进真的 storage，OCR 也不去跑 Tesseract
         Storage::fake('local');
         $this->ocr = $this->app->make(FakeOcrService::class);
         $this->app->instance(OcrService::class, $this->ocr);
@@ -38,7 +40,7 @@ abstract class TestCase extends BaseTestCase
         return User::factory()->withRole($role)->create(['department_id' => $department?->id] + $attributes);
     }
 
-    /** Give a role extra permissions, as an admin would in Settings → Roles & Permissions. */
+    /** 给 role 加权限，模拟 admin 在 Settings → Roles & Permissions 里打勾 */
     protected function grant(string $role, string ...$permissions): void
     {
         Role::where('name', $role)->firstOrFail()->permissions()
@@ -50,7 +52,10 @@ abstract class TestCase extends BaseTestCase
         return ClaimCategory::where('name', $name)->firstOrFail();
     }
 
-    /** A submitted (waiting-for-approval) claim created directly in the DB. */
+    /**
+     * 直接写进数据库的 claim，默认是 submitted（等待审批）。
+     * 跳过 ClaimService，status / 金额这些非 fillable 栏位在这里手动设。
+     */
     protected function makeClaim(User $owner, array $attributes = []): Claim
     {
         static $n = 0;

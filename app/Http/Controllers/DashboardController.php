@@ -10,12 +10,12 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    /** Every figure here is computed from Claim::visibleTo(), i.e. the current user's permitted scope only. */
+    /** 这页所有数字都从 Claim::visibleTo() 算起，只统计当前用户权限范围内的 claim，普通员工看不到公司总数 */
     public function __invoke(Request $request)
     {
         $user = $request->user();
         $visible = fn () => Claim::query()->visibleTo($user);
-        // Spending figures count APPROVED claims only; pending ones are shown separately.
+        // 花费只算 approved 的，还在审的可能被 reject，另外单独显示
         $approved = fn () => $visible()->where('claims.status', Claim::STATUS_APPROVED);
         $pending = fn () => $visible()->where('claims.status', Claim::STATUS_SUBMITTED);
 
@@ -36,8 +36,8 @@ class DashboardController extends Controller
             ->limit(8)
             ->get([DB::raw("COALESCE(projects.name, 'No project') as label"), DB::raw('SUM(claims.total_amount) as total'), DB::raw('COUNT(*) as count')]);
 
-        // Claim summary chart: approved amount per month — this year (default), or the last 6 / 12 months.
-        // Built in PHP so it works on both MySQL and SQLite (tests).
+        // Claim summary 图表：每月 approved 金额，默认今年，也可以选最近 6 / 12 个月。
+        // 按月分组放在 PHP 做，因为 MySQL 和 SQLite（测试用）的日期函数不一样。
         $range = in_array($request->query('range'), ['6', '12'], true) ? $request->query('range') : 'year';
         $months = $range === 'year' ? max(6, now()->month) : (int) $range;
         $trendStart = now()->startOfMonth()->subMonths($months - 1);
@@ -54,7 +54,7 @@ class DashboardController extends Controller
             ];
         });
 
-        // Stat cards: this month against last month.
+        // 统计卡片：本月对比上月
         $lastStart = now()->startOfMonth()->subMonth();
         $lastEnd = $lastStart->copy()->endOfMonth();
         $between = fn ($q, string $column, $from, $to) => $q->whereBetween($column, [$from, $to]);
@@ -88,7 +88,7 @@ class DashboardController extends Controller
             'monthCount' => $thisMonth()->count(),
             'pendingCount' => $pending()->count(),
             'pendingTotal' => (float) $pending()->sum('claims.total_amount'),
-            // The user's own claims that need action: drafts not yet submitted, rejected ones to fix.
+            // 自己要跟进的：还没 submit 的 draft，和被 reject 要改的
             'myDraftCount' => Claim::query()->where('user_id', $user->id)->where('status', Claim::STATUS_DRAFT)->count(),
             'myRejected' => Claim::query()->where('user_id', $user->id)->where('status', Claim::STATUS_REJECTED)->latest('reviewed_at')->get(),
             'toApproveCount' => $user->hasPermission(Permission::CLAIMS_APPROVE)

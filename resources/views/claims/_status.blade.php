@@ -1,3 +1,4 @@
+{{-- claim 状态 badge。需要 $status --}}
 @php
     $styles = [
         'draft' => ['bg-slate-100 text-slate-600', 'bg-slate-400', 'Draft'],

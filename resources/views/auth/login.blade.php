@@ -12,7 +12,7 @@
 </head>
 <body class="min-h-screen bg-[#f5f7fb] antialiased">
 <div class="grid min-h-screen lg:grid-cols-2">
-    {{-- Brand panel (large screens) --}}
+    {{-- 左边品牌区（只在大屏显示） --}}
     <div class="relative hidden overflow-hidden bg-gradient-to-br from-navy-900 via-navy-800 to-navy-700 p-12 text-white lg:flex lg:flex-col lg:justify-between">
         <div class="flex items-center gap-4">
             <span class="rounded-2xl bg-white px-5 py-3 shadow-lg shadow-black/20"><x-logo class="h-14" /></span>
@@ -37,7 +37,7 @@
         <div class="pointer-events-none absolute top-20 -right-10 h-40 w-40 rounded-full bg-accent-400/20 blur-2xl"></div>
     </div>
 
-    {{-- Sign-in form --}}
+    {{-- 登录表单 --}}
     <div class="flex items-center justify-center p-6">
         <div class="w-full max-w-sm">
             <div class="mb-8 text-center lg:text-left">

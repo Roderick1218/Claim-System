@@ -9,16 +9,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 #[Fillable(['name', 'description'])]
 class Permission extends Model
 {
-    // Every user can always create / view / edit their OWN claims; these grant access beyond that.
-    public const CLAIMS_VIEW_DEPARTMENT = 'claims.view_department';
+    // 每个人本来就能新建、查看、修改自己的报销单，不需要权限。
+    // 下面这些是在“自己的”之外额外开放的范围，通过 role 分配，Settings → Roles & Permissions 里可以调。
+    public const CLAIMS_VIEW_DEPARTMENT = 'claims.view_department'; // 看同部门同事的单
 
-    public const CLAIMS_VIEW_ALL = 'claims.view_all';
+    public const CLAIMS_VIEW_ALL = 'claims.view_all'; // 看全公司的单，默认只有 admin 有
 
-    public const CLAIMS_MANAGE_ALL = 'claims.manage_all';
+    public const CLAIMS_MANAGE_ALL = 'claims.manage_all'; // 改 / 删别人的单（前提是看得到）
 
-    public const CLAIMS_APPROVE = 'claims.approve';
+    public const CLAIMS_APPROVE = 'claims.approve'; // 审批，但永远不能批自己的
 
-    public const REPORTS_VIEW = 'reports.view';
+    public const REPORTS_VIEW = 'reports.view'; // 报表和 CSV 导出，范围同样受 visibleTo 限制
 
     public const SETTINGS_USERS = 'settings.users';
 
@@ -32,6 +33,7 @@ class Permission extends Model
 
     public const AUDIT_VIEW = 'audit.view';
 
+    // seeder 按这份清单建权限，描述会显示在角色设置页面
     /** @return array<string, string> name => description */
     public static function definitions(): array
     {
@@ -50,6 +52,7 @@ class Permission extends Model
         ];
     }
 
+    // 后台设置类的全部权限，seeder 给 admin 角色时整包分配
     public static function settingsPermissions(): array
     {
         return [

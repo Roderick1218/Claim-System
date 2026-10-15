@@ -1,9 +1,10 @@
-// Live amount preview for the claim form. Display only — the backend recalculates everything on save.
-// Uses integer cents (and thousandths for quantity), mirroring App\Services\ClaimCalculationService.
+// Claim 表单的金额实时预览，只是显示用，保存时后端会全部重算。
+// 金额用整数 cents，数量用千分位整数，算法跟 App\Services\ClaimCalculationService 保持一致。
 
 const body = document.getElementById('items-body');
 const template = document.getElementById('item-row');
 
+// 把 "12.345" 这类字符串转成放大 10^scale 的整数，多出的小数位四舍五入；格式不对返回 null
 function toScaled(value, scale) {
     const v = String(value ?? '').trim();
     const m = v.match(/^(\d+)(?:\.(\d+))?$/);
@@ -25,6 +26,7 @@ function calcRow(row) {
     const price = toScaled(get('unit_price'), 2);
     const discount = toScaled(get('discount_amount'), 2) ?? 0;
     const tax = toScaled(get('tax_amount'), 2) ?? 0;
+    // 有单价就用 数量 x 单价，Amount 栏锁住；没单价才用手填的 Amount
     let gross = 0;
     if (price !== null) {
         gross = Math.floor((qty * price + 500) / 1000);
@@ -35,6 +37,7 @@ function calcRow(row) {
     return { gross, discount, tax, total: gross - discount + tax };
 }
 
+// 增删行后重排 name，保持 items[0]、items[1]… 连续
 function renumber() {
     [...body.querySelectorAll('.item-row')].forEach((row, i) => {
         row.querySelectorAll('[data-name]').forEach((el) => {
@@ -59,6 +62,7 @@ function recalc() {
     const sticky = document.getElementById('sum-total-sticky');
     if (sticky) sticky.textContent = fmt(sum.total);
 
+    // 明细合计跟收据总额对不上就提示，不会自动改任何数字
     const receipt = toScaled(document.getElementById('receipt_total_amount').value, 2);
     const box = document.getElementById('diff-box');
     if (receipt !== null && receipt !== sum.total) {
@@ -69,6 +73,7 @@ function recalc() {
     }
 }
 
+// 从 template 复制一行；data._ocr 为 true 时，有值的栏位加黄色 ocr-filled 标记
 function addRow(data = {}) {
     const row = template.content.firstElementChild.cloneNode(true);
     row.querySelectorAll('[data-name]').forEach((el) => {
@@ -93,12 +98,12 @@ body.addEventListener('click', (e) => {
 document.getElementById('add-item').addEventListener('click', () => addRow().querySelector('[data-name="item_name"]').focus());
 document.getElementById('receipt_total_amount').addEventListener('input', recalc);
 
-// Disabled inputs are not submitted; re-enable before submit so the server sees every field.
+// disabled 的 input 不会被提交，submit 前先解锁，后端才收得到所有栏位
 document.getElementById('claim-form').addEventListener('submit', () => {
     body.querySelectorAll('[data-name="amount"]').forEach((el) => (el.disabled = false));
 });
 
-// OCR hint buttons copy a value that literally appears in the OCR text into the form.
+// OCR 提示按钮：把 OCR 文字里原样出现的值填进对应栏位
 document.querySelectorAll('[data-fill]').forEach((btn) => {
     btn.addEventListener('click', () => {
         const target = document.getElementById(btn.dataset.fill);
@@ -110,9 +115,10 @@ document.querySelectorAll('[data-fill]').forEach((btn) => {
     });
 });
 
-// Once the user edits an auto-filled field, it counts as checked: drop the yellow highlight.
+// 自动填好的栏位只要用户改过就算已确认，去掉黄色标记
 document.getElementById('claim-form').addEventListener('input', (e) => e.target.classList?.remove('ocr-filled'));
 document.getElementById('claim-form').addEventListener('change', (e) => e.target.classList?.remove('ocr-filled'));
 
+// 载入已有明细（页面通过 window.claimItems 传进来），一行都没有就给一行空的
 (window.claimItems || []).forEach((item) => addRow(item));
 if (!body.children.length) addRow();

@@ -7,11 +7,8 @@ use Illuminate\Support\Facades\DB;
 
 class ClaimNumberService
 {
-    /**
-     * Issues the next number, e.g. CLM-202610-00001.
-     * Must be called inside a DB transaction: the sequence row is locked (SELECT ... FOR UPDATE)
-     * so two concurrent requests can never receive the same number.
-     */
+    // 发下一个单号，例如 CLM-202610-00001，每个月从 1 重新开始。
+    // 必须在 DB transaction 里调用：这里用 SELECT ... FOR UPDATE 锁住当月的序号行，两个请求同时进来也不会拿到同一个号
     public function next(?\DateTimeInterface $at = null): string
     {
         $period = ($at ? Carbon::instance($at) : now())->format('Ym');

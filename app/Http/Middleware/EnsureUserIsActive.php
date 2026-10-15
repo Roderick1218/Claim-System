@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
-/** Logs out a user who was deactivated while still signed in. */
+// 用户登录期间被管理员停用的话，下一个请求就把他踢出去，不用等 session 过期
 class EnsureUserIsActive
 {
     public function handle(Request $request, Closure $next): Response

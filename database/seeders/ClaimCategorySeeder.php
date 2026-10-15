@@ -6,8 +6,8 @@ use App\Models\ClaimCategory;
 use Illuminate\Database\Seeder;
 
 /**
- * Default categories + receipt keywords (English / Malay / common Malaysian brands) for auto-selection.
- * Safe to re-run: keywords are only filled in where an admin hasn't set any yet.
+ * 默认的 claim category 和收据关键词（英文、马来文、本地常见品牌），给自动选 category 用。
+ * 可以重复跑：只有 admin 还没设过关键词的 category 才会填进去，不会盖掉他们改过的。
  */
 class ClaimCategorySeeder extends Seeder
 {

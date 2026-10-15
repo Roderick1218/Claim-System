@@ -21,6 +21,7 @@ class UserController extends Controller
         $users = User::query()
             ->with(['department', 'roles'])
             ->when($request->filled('q'), function ($q) use ($request) {
+                // 转义 % 和 _，用户输入的通配符不应该生效
                 $like = '%'.addcslashes($request->input('q'), '%_\\').'%';
                 $q->where(fn ($w) => $w->where('name', 'like', $like)->orWhere('email', 'like', $like)->orWhere('employee_code', 'like', $like));
             })
@@ -72,11 +73,12 @@ class UserController extends Controller
             }
             $user->save();
             $user->roles()->sync($data['roles']);
+            // role 换了，这个 model 上缓存的权限要清掉，下面的 snapshot 和后续检查才会读到新的
             $user->flushPermissionCache();
 
             [$old, $new] = $this->audit->diff($before, $this->snapshot($user->load('roles')));
             if ($data['password']) {
-                $new['password_reset'] = true; // flag only — the password itself is never logged
+                $new['password_reset'] = true; // 只记有重设过，密码本身绝不写进 log
             }
             if ($new !== []) {
                 $this->audit->log('user.updated', 'user', $user->id, $old, $new);

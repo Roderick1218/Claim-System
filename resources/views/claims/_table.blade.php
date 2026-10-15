@@ -1,4 +1,4 @@
-﻿{{-- Claims as a table on wide screens, as tappable rows on phones. $bare = already inside a card. --}}
+{{-- claim 列表：宽屏用表格，手机用列表行。需要 $claims（分页），$bare = 已经在 card 里面 --}}
 @php $showOwnerCol = $claims->contains(fn ($c) => $c->user_id !== auth()->id()); @endphp
 <div class="{{ ($bare ?? false) ? 'border-t border-slate-100' : 'card' }}">
     @if ($claims->isEmpty())
@@ -8,14 +8,14 @@
             <p class="text-sm text-slate-500">Try another filter, or create a new claim.</p>
         </div>
     @else
-        {{-- Phones --}}
+        {{-- 手机 --}}
         <div class="divide-y divide-slate-100 md:hidden">
             @foreach ($claims as $c)
                 @include('claims._row', ['c' => $c, 'showOwner' => $c->user_id !== auth()->id()])
             @endforeach
         </div>
 
-        {{-- Tablets / desktop --}}
+        {{-- 平板 / 电脑 --}}
         <div class="hidden md:block">
             <table class="table">
                 <thead>
@@ -31,6 +31,7 @@
                 </thead>
                 <tbody>
                 @foreach ($claims as $c)
+                    {{-- 整行可点，点到链接 / 下拉 / 按钮时除外 --}}
                     <tr class="cursor-pointer hover:bg-slate-50/80" onclick="if (!event.target.closest('a,details,button')) location.href='{{ route('claims.show', $c) }}'">
                         <td class="pl-5 font-medium whitespace-nowrap text-slate-700"><a href="{{ route('claims.show', $c) }}" class="hover:text-brand-700">{{ $c->claim_number }}</a></td>
                         <td class="whitespace-nowrap text-slate-600">{{ $c->expense_date?->format('d M Y') ?? '—' }}</td>

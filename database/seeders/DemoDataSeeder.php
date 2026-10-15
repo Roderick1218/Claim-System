@@ -8,7 +8,7 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
-/** Demo accounts for local testing. All passwords: password123 — change or deactivate before going live. */
+/** 本地测试用的 demo 账号，密码全是 password123，上线前一定要改密码或停用 */
 class DemoDataSeeder extends Seeder
 {
     public function run(): void

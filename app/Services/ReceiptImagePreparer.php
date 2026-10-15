@@ -5,24 +5,22 @@ namespace App\Services;
 use GdImage;
 
 /**
- * Prepares a receipt photo for Tesseract (GD only, no external tools):
- *  1. applies the phone's EXIF rotation,
- *  2. crops to the white paper area (drops table / tray / hands, which confuse the layout analysis),
- *  3. upscales small text — Tesseract needs roughly 20–30 px high characters.
+ * 把收据照片处理成 Tesseract 比较好读的样子，只用 GD，不靠外部工具：
+ * 先按手机的 EXIF 转正，再裁到白色纸张范围（桌面、托盘、手会搞乱版面分析），
+ * 最后把小字放大，Tesseract 大概要 20–30 px 高的字才读得准。
  *
- * Tesseract's accuracy jumps around with text size (in testing, one photo read perfectly at 2× and badly at 1.5×,
- * another the other way round), so several scales are produced. The caller OCRs all of them plus the original
- * and keeps the best-scoring text.
+ * Tesseract 的准确度跟字的大小关系很不稳定：测试时有张照片 2× 读得完美、1.5× 很差，另一张刚好相反。
+ * 所以输出好几个尺寸，由调用方连同原图全部 OCR，取分数最高的。
  */
 class ReceiptImagePreparer
 {
     private const SCALES = [1.0, 1.5, 2.0, 2.5];
 
-    private const MAX_WIDTH = 2000;         // larger gains nothing and slows Tesseract down
+    private const MAX_WIDTH = 2000;         // 再大也没帮助，只会拖慢 Tesseract
 
-    private const MAX_PIXELS = 40_000_000;  // refuse absurd images (memory)
+    private const MAX_PIXELS = 40_000_000;  // 超大图片直接不处理，免得爆内存
 
-    /** @return array<int, string> temporary PNG paths (caller deletes them) */
+    /** @return array<int, string> 临时 PNG 路径，用完由调用方删除 */
     public function variants(string $path, string $tmpDir): array
     {
         if (! extension_loaded('gd')) {
@@ -46,7 +44,7 @@ class ReceiptImagePreparer
 
         $paths = [];
         foreach (self::SCALES as $scale) {
-            // Scale 1.0 is only useful when rotation/cropping actually changed the image.
+            // 1.0 倍只有在转正或裁切真的改变了图片时才有意义，不然跟原图一样
             if (($scale === 1.0 && ! $changed) || imagesx($base) * $scale > self::MAX_WIDTH) {
                 continue;
             }
@@ -60,7 +58,10 @@ class ReceiptImagePreparer
         return $paths;
     }
 
-    /** [x, y, width, height] of the bright, low-saturation paper area; the whole image if none is found. */
+    /**
+     * 找出偏白、低饱和度的纸张范围，返回 [x, y, width, height]；找不到就返回整张图。
+     * 为了速度只抽样，长边大约取 400 个点。
+     */
     public function paperBox(GdImage $im): array
     {
         $w = imagesx($im);
@@ -99,7 +100,7 @@ class ReceiptImagePreparer
         $x1 = min($w, max($xs) + $pad);
         $y1 = min($h, max($ys) + $pad);
 
-        // Too small to be the receipt (probably a white sticker / napkin) → keep everything.
+        // 范围太小不像收据，多半是白色贴纸或纸巾，那就整张保留
         if (($x1 - $x0) < $w * 0.12 || ($y1 - $y0) < $h * 0.3) {
             return [0, 0, $w, $h];
         }

@@ -1,3 +1,4 @@
+{{-- 可点击排序的表头，再点一次切换升降序。需要 $column、$label --}}
 @php
     $current = request('sort');
     $dir = request('dir', 'desc');

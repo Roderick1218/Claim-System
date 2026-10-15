@@ -54,6 +54,7 @@ class ReceiptController extends Controller
     {
         $this->authorize('retryOcr', $receipt);
 
+        // OCR 是同步跑的，PHP 执行时限要比 OCR 的 timeout 再宽一点
         @set_time_limit((int) config('claims.ocr.timeout', 60) + 30);
         $audit->log('ocr.retried', 'receipt', $receipt->id, ['ocr_status' => $receipt->ocr_status], null);
         $ocr->process($receipt);
@@ -62,8 +63,8 @@ class ReceiptController extends Controller
             return back()->with('error', 'OCR failed: '.$receipt->ocr_error);
         }
 
-        // Draft: the user retried to get better values, so show the new reading in the form straight away
-        // (highlighted, still not saved until they click Save / Submit).
+        // Draft 状态下重跑 OCR，通常是想拿到更准的值，所以直接带 refill 回表单显示新结果。
+        // 一样是高亮，按 Save / Submit 之前不会存。
         if ($receipt->claim->isDraft()) {
             return redirect()->route('claims.edit', ['claim' => $receipt->claim, 'refill' => 1])
                 ->with('success', 'OCR completed — the form below now shows the new reading. Check it, then Save Draft / Submit for approval.');
@@ -90,6 +91,7 @@ class ReceiptController extends Controller
         }
     }
 
+    /** 下载文件名用 claim 编号加上 slug 过的原文件名，原文件名是用户上传的，不能直接放进 header */
     private function safeName(Receipt $receipt): string
     {
         $ext = pathinfo($receipt->file_path, PATHINFO_EXTENSION);

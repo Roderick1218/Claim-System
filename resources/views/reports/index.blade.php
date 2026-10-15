@@ -2,11 +2,13 @@
 @section('title', 'Reports')
 
 @section('content')
+{{-- 筛选栏，多一个 Export CSV 按钮 --}}
 @include('claims._filters', [
     'action' => route('reports.index'),
     'extraButtons' => new \Illuminate\Support\HtmlString('<a href="'.e(route('reports.export', $filters)).'" class="btn-success">⬇ Export CSV</a>'),
 ])
 
+{{-- 汇总：总数、按类别、按员工 --}}
 <div class="mb-6 grid gap-4 md:grid-cols-3">
     <div class="card p-5">
         <div class="text-xs font-medium uppercase text-slate-500">Matching claims</div>

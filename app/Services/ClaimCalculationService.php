@@ -4,15 +4,15 @@ namespace App\Services;
 
 use InvalidArgumentException;
 
-/**
- * All money maths is done in integer cents (quantity in thousandths) — never floats.
+/*
+ * 所有金额都换成整数 cent 来算（数量用千分位整数），不用 float，避免 0.1 + 0.2 这类误差导致对不上账。
  *
- * Line rule (applied in this order):
- *   gross      = round_half_up(quantity × unit_price)      when a unit price is given
- *              = amount                                    when the unit price is empty (receipt shows a total only)
+ * 每行的算法：
+ *   gross      = round_half_up(quantity × unit_price)      有单价时
+ *              = amount                                    没单价时（收据只印了总额）
  *   line_total = gross − discount + tax
  *
- * Claim: subtotal = Σ gross, discount = Σ discount, tax = Σ tax, total = Σ line_total.
+ * 整单：subtotal = Σ gross，discount = Σ discount，tax = Σ tax，total = Σ line_total
  */
 class ClaimCalculationService
 {
@@ -28,6 +28,7 @@ class ClaimCalculationService
         $tax = $this->filled($line['tax_amount'] ?? null) ? $this->toScaled($line['tax_amount'], 2) : 0;
 
         if ($priceCents !== null) {
+            // 千分位 × cent，再除 1000 四舍五入回 cent
             $gross = intdiv($qtyMilli * $priceCents + 500, 1000);
         } elseif ($this->filled($line['amount'] ?? null)) {
             $gross = $this->toScaled($line['amount'], 2);
@@ -48,7 +49,7 @@ class ClaimCalculationService
     }
 
     /**
-     * @param  array<int, array>  $calculatedLines  output of calculateLine()
+     * @param  array<int, array>  $calculatedLines  calculateLine() 的结果
      * @return array{subtotal_amount: string, discount_amount: string, tax_amount: string, total_amount: string}
      */
     public function calculateTotals(array $calculatedLines): array
@@ -69,7 +70,7 @@ class ClaimCalculationService
         ];
     }
 
-    /** "12.5" with scale 3 → 12500. Rejects anything that is not a plain decimal. */
+    // "12.5" 配 scale 3 → 12500。多出来的小数位四舍五入；不是普通小数格式（如 1e3、1,000）直接报错
     public function toScaled(mixed $value, int $scale): int
     {
         $value = trim((string) $value);
@@ -93,6 +94,7 @@ class ClaimCalculationService
         return $m[1] === '-' ? -$int : $int;
     }
 
+    // toScaled 的反向：12500 配 scale 3 → "12.500"
     public function fromScaled(int $value, int $scale): string
     {
         $negative = $value < 0;

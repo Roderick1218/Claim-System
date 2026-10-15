@@ -5,7 +5,7 @@ namespace Tests\Support;
 use App\Services\OcrFailedException;
 use App\Services\OcrService;
 
-/** Replaces the Tesseract call in tests; everything else (status handling, storage checks) is the real code. */
+/** 测试时只替换掉调用 Tesseract 那一步，状态处理、文件检查等其余部分都是真的代码 */
 class FakeOcrService extends OcrService
 {
     public string $text = "ABC TRADING\nDATE: 05/10/2026 14:30\nMineral Water 2 x 2.00 4.00\nTOTAL 4.00";

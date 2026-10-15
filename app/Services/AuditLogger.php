@@ -7,7 +7,7 @@ use Illuminate\Support\Arr;
 
 class AuditLogger
 {
-    /** Never written to the audit log. */
+    // 这些字段不写进日志：密码、token 不该留底；ocr_text 太长又可能含个人资料；file_path 是内部路径
     private const SENSITIVE_KEYS = [
         'password', 'password_confirmation', 'remember_token', 'token', '_token',
         'ocr_text', 'file_path', 'api_key', 'secret',
@@ -28,7 +28,8 @@ class AuditLogger
     }
 
     /**
-     * Returns only the keys whose values actually changed, as [old, new].
+     * 只挑出真正有变动的字段，返回 [old, new]，日志里就不会堆满没改过的值。
+     * 用 json_encode 来比，嵌套的 items 数组也能直接整块比较。
      *
      * @return array{0: array, 1: array}
      */

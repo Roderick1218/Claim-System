@@ -1,4 +1,4 @@
-{{-- Receipt preview + OCR text. $editable = show retry / delete buttons. $hints only on the edit page. --}}
+{{-- 收据预览 + OCR 文字。需要 $claim；$editable = 显示重跑 OCR / 删除按钮；$hints 只有 edit 页会传 --}}
 @foreach ($claim->receipts as $receipt)
     <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
         <div class="relative bg-slate-100">
@@ -43,6 +43,7 @@
                 <div class="rounded-lg bg-slate-100 p-3 text-sm text-slate-600">OCR {{ $receipt->ocr_status }}…</div>
             @endif
 
+            {{-- OCR 找到的金额 / 日期 / 时间，点一下填进表单 --}}
             @if (! empty($hints[$receipt->id]) && collect(\Illuminate\Support\Arr::only($hints[$receipt->id], ['totals', 'dates', 'times']))->flatten()->isNotEmpty())
                 <div class="rounded-lg bg-brand-50/70 p-3 text-xs">
                     <div class="mb-2 font-semibold text-brand-800">Found in OCR text — click to copy into the form (please check):</div>

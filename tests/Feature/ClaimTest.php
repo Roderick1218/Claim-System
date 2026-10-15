@@ -19,7 +19,7 @@ class ClaimTest extends TestCase
     {
         return array_replace([
             'action' => 'submit',
-            'category_id' => $this->category('Other')->id, // "Other" does not require a receipt
+            'category_id' => $this->category('Other')->id, // "Other" 不需要收据
             'merchant_name' => 'Kedai ABC',
             'expense_date' => now()->toDateString(),
             'items' => [
@@ -72,6 +72,7 @@ class ClaimTest extends TestCase
         $this->assertSame('draft', $claim->fresh()->status);
     }
 
+    // 12.5 x 2.05 = 25.625 → 25.63，扣 0.63 折扣后是 25.00；浏览器传来的 total / line_total 一律不理
     public function test_backend_recalculates_amounts_and_ignores_browser_totals(): void
     {
         $user = $this->makeUser();
@@ -122,7 +123,7 @@ class ClaimTest extends TestCase
         $this->actingAs($user)->put(route('claims.update', $newClaim), $this->validPayload(['category_id' => $inactive->id]))
             ->assertSessionHasErrors('category_id');
 
-        $oldClaim = $this->makeClaim($user, ['category_id' => $inactive->id, 'status' => 'rejected']); // owner may still edit a rejected claim
+        $oldClaim = $this->makeClaim($user, ['category_id' => $inactive->id, 'status' => 'rejected']); // 被 reject 的 claim 本人还能改
         $this->actingAs($user)->put(route('claims.update', $oldClaim), $this->validPayload(['category_id' => $inactive->id]))
             ->assertSessionHasNoErrors();
         $this->get(route('claims.show', $oldClaim))->assertSee('Old Category (inactive)');
@@ -167,7 +168,7 @@ class ClaimTest extends TestCase
                 $delete();
                 $this->fail('Delete should have been blocked by a foreign key.');
             } catch (QueryException) {
-                // expected: restrictOnDelete
+                // 预期之内，restrictOnDelete 挡住了
             }
         }
 

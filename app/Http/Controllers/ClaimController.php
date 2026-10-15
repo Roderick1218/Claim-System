@@ -24,7 +24,7 @@ class ClaimController extends Controller
         $filters = $filter->fromRequest($request);
         $claims = $filter->query($request->user(), $filters)->paginate(20)->withQueryString();
 
-        // Counts for the status tabs: same filters, any status.
+        // 状态 tab 上的数字：沿用同一组筛选条件，只是不限 status，否则切 tab 时其他 tab 的数字会变 0
         $statusCounts = $filter->query($request->user(), array_diff_key($filters, ['status' => 1]))
             ->reorder()->toBase()->selectRaw('claims.status, COUNT(*) as n')->groupBy('claims.status')->pluck('n', 'status');
 
@@ -44,8 +44,8 @@ class ClaimController extends Controller
     }
 
     /**
-     * Step 1: create a draft, store any uploaded receipts and run local OCR on them,
-     * then send the user to the edit page to check the OCR text and confirm the details.
+     * 第一步：先开一张 draft，存好上传的收据并跑本地 OCR，
+     * 再带用户去 edit 页面核对 OCR 结果、补齐资料。
      */
     public function store(UploadReceiptRequest $request, ReceiptUploadHandler $uploads)
     {
@@ -69,8 +69,8 @@ class ClaimController extends Controller
 
     public function edit(Claim $claim, ReceiptTextHints $hints)
     {
-        // A claim the user may see but no longer change (submitted / approved, e.g. reached with the browser's
-        // Back button after submitting): show it instead of a 403. Users who may not see it still get 403.
+        // 常见情况：submit 之后按浏览器 Back 又回到 edit 页。看得到但已经不能改的 claim（submitted / approved）
+        // 直接转去详情页，比丢一个 403 友好。本来就没权限看的人照样 403。
         $user = request()->user();
         if ($user->cannot('update', $claim) && $user->can('view', $claim)) {
             return redirect()->route('claims.show', $claim)->with('success', match (true) {
@@ -95,8 +95,8 @@ class ClaimController extends Controller
     }
 
     /**
-     * True when the saved draft items do NOT add up to the receipt, but the OCR reading does —
-     * e.g. the draft was saved before an add-on / tax line was recognised. The form then offers "Re-fill from OCR".
+     * 已存的 draft item 加起来对不上收据总额，但 OCR 读出来的对得上时返回 true。
+     * 一般是 draft 存得比较早，那时 add-on / 税那几行还没认出来。表单会据此显示 "Re-fill from OCR"。
      */
     private function ocrSuggestsRefill(Claim $claim, $receiptHints, array $prefill): bool
     {
@@ -113,9 +113,9 @@ class ClaimController extends Controller
     }
 
     /**
-     * Values found in the OCR text, used to pre-fill only the fields that are still empty —
-     * or, with $refill ("Re-fill from OCR" button), every field OCR found a value for, replacing what was saved.
-     * They are shown highlighted in the form and are NOT saved until the user clicks Save / Record.
+     * 从 OCR 文字里抽出来的值，默认只填还空着的栏位；
+     * $refill 为 true（按了 "Re-fill from OCR"）时，OCR 有读到的栏位全部覆盖掉已存的值。
+     * 这些值在表单里会高亮，用户按 Save / Record 之前都不会写进数据库。
      */
     private function prefillFromOcr(Claim $claim, $receiptHints, bool $refill = false): array
     {
@@ -125,7 +125,7 @@ class ClaimController extends Controller
 
         $first = fn (string $key) => $receiptHints->pluck($key)->flatten(1)->first();
         $date = $first('dates');
-        $total = $receiptHints->pluck('totals')->map(fn ($t) => end($t) ?: null)->filter()->first(); // last TOTAL line on a receipt is the final one
+        $total = $receiptHints->pluck('totals')->map(fn ($t) => end($t) ?: null)->filter()->first(); // 收据上可能有几行 TOTAL，最后一行才是实付
         $empty = fn ($value) => $refill || $value === null;
 
         $prefill = array_filter([
@@ -136,7 +136,7 @@ class ClaimController extends Controller
             'receipt_total_amount' => $empty($claim->receipt_total_amount) ? $total : null,
         ]);
 
-        // Category: same merchant's past category, else keywords on the receipt (Settings → Claim Categories).
+        // Category 先看同一商家以前报过什么，没有的话再用收据上的关键词猜（关键词在 Settings → Claim Categories 维护）
         if ($empty($claim->category_id) && $claim->receipts->contains('ocr_status', 'completed')) {
             $guess = app(CategoryGuesser::class)->guess(
                 $prefill['merchant_name'] ?? $claim->merchant_name,
@@ -152,7 +152,7 @@ class ClaimController extends Controller
             return $prefill;
         }
 
-        // Items read from the receipt lines (only those receipts' own items, tagged with their receipt).
+        // 每张收据读到的 item 各自挂上 receipt_id，之后才知道哪一行来自哪张收据
         $items = $receiptHints->flatMap(fn ($h, $receiptId) => collect($h['items'])->map(fn ($i) => $i + [
             'unit' => null,
             'discount_amount' => '',
@@ -163,7 +163,7 @@ class ClaimController extends Controller
         if ($items !== []) {
             $prefill['items'] = $items;
         } elseif ($total !== null) {
-            // Items not readable: one "total only" line so the claim total matches the receipt; the user can split it.
+            // 读不出明细就先放一行总额，至少 claim 金额跟收据对得上，用户要细分再自己拆
             $receiptId = $receiptHints->search(fn ($h) => in_array($total, $h['totals'], true));
             $prefill['items'] = [[
                 'item_name' => $first('merchants') ? 'Receipt total — '.$first('merchants') : 'Receipt total',
@@ -202,7 +202,7 @@ class ClaimController extends Controller
         return redirect()->route('claims.index')->with('success', "Claim {$claim->claim_number} deleted.");
     }
 
-    /** Dropdown options limited to what the user is allowed to see. */
+    /** 筛选下拉的员工名单只列出看得到的人，免得从下拉里看到别部门的同事 */
     private function filterOptions(User $user): array
     {
         $visibleUserIds = Claim::query()->visibleTo($user)->select('user_id')->distinct();

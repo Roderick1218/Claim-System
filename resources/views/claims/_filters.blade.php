@@ -1,9 +1,9 @@
-{{-- Shared by Claims list and Reports. $action = form URL, $options = dropdown data, $filters = current values.
-     The search box is always visible; the other filters fold away until needed. --}}
+{{-- Claims 列表和 Reports 共用的筛选栏。$action = 表单 URL，$options = 下拉选项，$filters = 当前筛选值，$bare / $extraButtons 可选。
+     搜索框一直显示，其他筛选默认收起。 --}}
 @php
     $advancedKeys = ['date_from', 'date_to', 'category_id', 'project_id', 'user_id', 'department_id', 'merchant', 'amount_min', 'amount_max'];
     $activeAdvanced = count(array_intersect_key($filters, array_flip($advancedKeys)));
-    $statusTabs = request()->routeIs('claims.index'); // the claims page has status tabs instead of a status dropdown
+    $statusTabs = request()->routeIs('claims.index'); // claims 页用状态 tab，不用 Status 下拉
 @endphp
 <form method="GET" action="{{ $action }}" class="{{ ($bare ?? false) ? 'p-4 sm:px-5' : 'card mb-5 p-3 sm:p-4' }}">
     <div class="flex gap-2">
@@ -18,6 +18,7 @@
         </button>
     </div>
 
+    {{-- 进阶筛选，有值时自动展开 --}}
     <div id="more-filters" class="mt-4 border-t border-slate-100 pt-4" @if (! $activeAdvanced && ! (isset($filters['status']) && ! $statusTabs)) hidden @endif>
         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div>
@@ -100,6 +101,7 @@
         </div>
     </div>
 
+    {{-- 保留当前状态 tab 和排序 --}}
     @if ($statusTabs && isset($filters['status']))<input type="hidden" name="status" value="{{ $filters['status'] }}">@endif
     <input type="hidden" name="sort" value="{{ $filters['sort'] ?? '' }}">
     <input type="hidden" name="dir" value="{{ $filters['dir'] ?? '' }}">

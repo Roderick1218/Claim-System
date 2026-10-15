@@ -24,7 +24,7 @@
 @endphp
 
 @php
-    // Back goes to the list the user came from — never to the edit page (locked once submitted).
+    // Back 回到用户来的列表页，不回 edit 页（提交后已锁定）
     $prev = url()->previous();
     $listPages = [route('claims.index'), route('dashboard')];
     if (auth()->user()->hasPermission('claims.approve')) { $listPages[] = route('approvals.index'); }
@@ -35,7 +35,7 @@
     <x-icon name="arrow-left" class="h-4 w-4" /> Back
 </a>
 
-{{-- Summary: amount, status, progress --}}
+{{-- 概要：金额、状态、进度 --}}
 <div class="card mb-5 p-5 sm:p-6">
     <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -72,7 +72,7 @@
     @endif
 </div>
 
-{{-- Approver panel --}}
+{{-- 审批区：批准 / 拒绝 --}}
 @can('review', $claim)
     <div class="card mb-5 overflow-hidden ring-2 ring-brand-200">
         <div class="card-header bg-brand-50/60">
@@ -103,6 +103,7 @@
 @endcan
 
 <div class="grid gap-5 lg:grid-cols-5">
+    {{-- 收据预览 --}}
     <div class="min-w-0 lg:col-span-2">
         <div class="space-y-4 lg:sticky lg:top-24">
             <h2 class="card-title px-1"><x-icon name="receipt" class="h-5 w-5 text-slate-400" /> Receipt{{ $claim->receipts->count() > 1 ? 's' : '' }}</h2>
@@ -114,7 +115,7 @@
     </div>
 
     <div class="min-w-0 space-y-5 lg:col-span-3">
-        {{-- Details --}}
+        {{-- 基本资料 --}}
         <div class="card">
             <div class="card-header"><h2 class="card-title"><x-icon name="info" class="h-5 w-5 text-slate-400" /> Details</h2></div>
             <dl class="grid gap-x-6 gap-y-4 p-5 text-sm sm:grid-cols-2">
@@ -142,7 +143,7 @@
             </dl>
         </div>
 
-        {{-- Items + totals --}}
+        {{-- 明细 + 合计 --}}
         <div class="card overflow-hidden">
             <div class="card-header"><h2 class="card-title"><x-icon name="receipt" class="h-5 w-5 text-slate-400" /> Items</h2></div>
             <div class="divide-y divide-slate-100">

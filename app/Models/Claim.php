@@ -9,17 +9,19 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+// 报销单主表，一张单对应多条明细（claim_items）和多张收据（receipts）。
+// 状态流转：draft → submitted → approved / rejected，rejected 之后可以改了再提交。
 class Claim extends Model
 {
     use HasFactory, SoftDeletes;
 
     public const STATUS_DRAFT = 'draft';
 
-    public const STATUS_SUBMITTED = 'submitted'; // waiting for approval, locked for the owner
+    public const STATUS_SUBMITTED = 'submitted'; // 等待审批，本人不能再改
 
-    public const STATUS_APPROVED = 'approved';   // final, locked for everyone
+    public const STATUS_APPROVED = 'approved';   // 最终状态，谁都不能改
 
-    public const STATUS_REJECTED = 'rejected';   // owner may edit and resubmit
+    public const STATUS_REJECTED = 'rejected';   // 本人可以修改后重新提交
 
     public const STATUSES = [
         self::STATUS_DRAFT => 'Draft',
@@ -28,7 +30,8 @@ class Claim extends Model
         self::STATUS_REJECTED => 'Rejected',
     ];
 
-    // Ownership, numbering and amounts are set by the backend only — never mass-assigned from a request.
+    // user_id、单号、状态和各种金额只能由后端写入，不放进 fillable，
+    // 避免有人在表单里多塞一个字段就改了归属人或金额。金额统一由 ClaimCalculationService 算。
     protected $fillable = [
         'category_id', 'project_id', 'merchant_name', 'expense_date', 'expense_time',
         'location', 'business_purpose', 'receipt_total_amount', 'notes',
@@ -83,10 +86,8 @@ class Claim extends Model
         return $this->hasMany(Receipt::class)->orderBy('id');
     }
 
-    /**
-     * The single source of truth for "which claims may this user see".
-     * Used by the list, dashboard, reports and CSV export alike.
-     */
+    // “这个用户能看哪些单”只在这里定义一次，列表、dashboard、报表和 CSV 导出都走这个 scope，
+    // 以后改权限规则不会漏掉某个入口。公司规定默认只看自己的，只有 admin（claims.view_all）看全部。
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {
         if ($user->hasPermission(Permission::CLAIMS_VIEW_ALL)) {
@@ -109,7 +110,7 @@ class Claim extends Model
         return $this->status === self::STATUS_DRAFT;
     }
 
-    /** Draft or rejected: the owner can still change it and (re)submit. */
+    // draft 或 rejected 时本人还能改、能（重新）提交
     public function isEditableByOwner(): bool
     {
         return in_array($this->status, [self::STATUS_DRAFT, self::STATUS_REJECTED], true);
@@ -135,7 +136,8 @@ class Claim extends Model
         return self::STATUSES[$this->status] ?? ucfirst((string) $this->status);
     }
 
-    /** Receipt total minus calculated total; null when the user has not confirmed a receipt total. */
+    // 收据总额减去系统算出的总额，用来提醒对不上账；用户没填收据总额时返回 null。
+    // 先换成整数 cent 再相减，避免浮点误差。
     public function getDifferenceAmountAttribute(): ?string
     {
         if ($this->receipt_total_amount === null) {

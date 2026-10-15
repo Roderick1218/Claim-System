@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -12,16 +13,10 @@ use Illuminate\Support\Str;
  */
 class UserFactory extends Factory
 {
-    /**
-     * The current password being used by the factory.
-     */
+    /** 密码 hash 只算一次，大量建 user 时测试才不会被 bcrypt 拖慢 */
     protected static ?string $password;
 
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
+    /** @return array<string, mixed> */
     public function definition(): array
     {
         return [
@@ -33,10 +28,10 @@ class UserFactory extends Factory
         ];
     }
 
-    /** Attach an existing role by name (roles come from RolePermissionSeeder). */
+    /** 按名字挂上已有的 role，role 本身由 RolePermissionSeeder 建，测试前要先 seed */
     public function withRole(string $role): static
     {
-        return $this->afterCreating(fn (User $user) => $user->roles()->attach(\App\Models\Role::where('name', $role)->firstOrFail()));
+        return $this->afterCreating(fn (User $user) => $user->roles()->attach(Role::where('name', $role)->firstOrFail()));
     }
 
     public function inactive(): static
@@ -44,9 +39,6 @@ class UserFactory extends Factory
         return $this->state(fn () => ['is_active' => false]);
     }
 
-    /**
-     * Indicate that the model's email address should be unverified.
-     */
     public function unverified(): static
     {
         return $this->state(fn (array $attributes) => [

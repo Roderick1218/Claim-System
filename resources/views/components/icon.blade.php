@@ -1,4 +1,4 @@
-{{-- Outline icons (Heroicons, MIT). Usage: <x-icon name="home" class="h-5 w-5" /> --}}
+{{-- 线条图标（Heroicons，MIT）。用法：<x-icon name="home" class="h-5 w-5" />，找不到 name 时显示 info --}}
 @props(['name'])
 @php
     $paths = [

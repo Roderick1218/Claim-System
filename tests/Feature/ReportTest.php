@@ -48,7 +48,7 @@ class ReportTest extends TestCase
         $opsUser = $this->makeUser('staff', $ops);
         $opsClaim = $this->makeClaim($opsUser);
 
-        // Even asking explicitly for the other department's employee returns nothing.
+        // 就算在 URL 里直接指定别部门的员工，也导不出任何东西
         $csv = $this->actingAs($manager)->get(route('reports.export', ['user_id' => $opsUser->id]))->assertOk()->streamedContent();
         $this->assertStringNotContainsString($opsClaim->claim_number, $csv);
 
@@ -64,7 +64,7 @@ class ReportTest extends TestCase
         $this->makeClaim($admin, ['total_amount' => '4.25']);
 
         $csv = $this->actingAs($admin)->get(route('reports.export'))->streamedContent();
-        $rows = array_map('str_getcsv', array_filter(explode("\n", trim(substr($csv, 3)))));
+        $rows = array_map('str_getcsv', array_filter(explode("\n", trim(substr($csv, 3))))); // 前 3 byte 是 BOM
 
         $this->assertSame('No', $rows[0][0]);
         $this->assertSame(['1', '2'], [$rows[1][0], $rows[2][0]]);

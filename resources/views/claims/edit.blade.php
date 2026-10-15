@@ -11,24 +11,25 @@
 
 @section('content')
 @php
-    // $prefill only holds fields that are empty — or everything OCR found when "Re-fill from OCR" was clicked — so it wins.
+    // $prefill 只放原本空着的栏位（按了 "Re-fill from OCR" 就是 OCR 读到的全部），所以优先用它
     $itemsData = old('items', $prefill['items'] ?? $claim->items->map(fn ($i) => [
         'item_name' => $i->item_name,
         'quantity' => rtrim(rtrim((string) $i->quantity, '0'), '.'),
         'unit' => $i->unit,
         'unit_price' => $i->unit_price,
-        // For "total only" lines, the amount before discount/tax.
+        // 只有总价的行：还原成折扣/税之前的金额
         'amount' => $i->unit_price === null ? number_format((float) $i->line_total + (float) $i->discount_amount - (float) $i->tax_amount, 2, '.', '') : '',
         'discount_amount' => (float) $i->discount_amount ? $i->discount_amount : '',
         'tax_amount' => (float) $i->tax_amount ? $i->tax_amount : '',
         'receipt_id' => $i->receipt_id,
     ])->all());
-    // Field pre-filled from OCR (and not overridden by old input after a validation error) → highlighted.
+    // OCR 预填、而且验证失败后没被 old input 盖掉的栏位，加黄色高亮
     $ocr = fn (string $field) => isset($prefill[$field]) && old($field) === null;
     $ocrClass = 'ocr-filled';
     $receiptOptions = $claim->receipts->values()->map(fn ($r, $i) => ['id' => $r->id, 'name' => 'Receipt '.($i + 1).' · '.\Illuminate\Support\Str::limit($r->original_filename, 20)]);
 @endphp
 
+{{-- 被拒绝时显示拒绝原因 --}}
 @if ($claim->isRejected())
     <div class="alert border-rose-200 bg-rose-50 text-rose-800">
         <x-icon name="x" class="mt-0.5 h-5 w-5 text-rose-600" />
@@ -38,7 +39,7 @@
 @endif
 
 <div class="grid gap-6 lg:grid-cols-5">
-    {{-- Receipt photo(s): collapsible on phones, pinned beside the form on large screens --}}
+    {{-- 收据预览：手机上可折叠，大屏固定在表单旁边 --}}
     <div class="min-w-0 lg:col-span-2">
         <div class="lg:sticky lg:top-24">
             <details class="group card overflow-hidden lg:open:block" @if ($claim->receipts->isNotEmpty()) open @endif>
@@ -50,6 +51,7 @@
                 <div class="max-h-[75vh] space-y-4 overflow-y-auto p-4">
                     @include('receipts._panel', ['editable' => true])
 
+                    {{-- 追加收据 --}}
                     <form method="POST" action="{{ route('claims.receipts.store', $claim) }}" enctype="multipart/form-data" class="rounded-xl border border-dashed border-slate-300 p-4" data-loading="Reading your receipt…">
                         @csrf
                         <label class="label">{{ $claim->receipts->isEmpty() ? 'Add a receipt' : 'Add another receipt' }}</label>
@@ -62,10 +64,11 @@
         </div>
     </div>
 
-    {{-- Claim form --}}
+    {{-- Claim 表单 --}}
     <form method="POST" action="{{ route('claims.update', $claim) }}" id="claim-form" class="min-w-0 space-y-5 lg:col-span-3">
         @csrf @method('PUT')
 
+        {{-- OCR 结果对得上收据总额而已存明细对不上时，建议重新带入 --}}
         @if ($ocrSuggestsRefill)
             <div class="alert border-brand-200 bg-brand-50 text-brand-900">
                 <x-icon name="sparkles" class="mt-0.5 h-5 w-5 text-brand-600" />
@@ -87,7 +90,7 @@
             </div>
         @endif
 
-        {{-- 1. Details --}}
+        {{-- 1. 基本资料 --}}
         <div class="card">
             <div class="card-header"><h2 class="card-title"><span class="grid h-6 w-6 place-items-center rounded-full bg-brand-600 text-xs font-bold text-white">1</span> Details</h2></div>
             <div class="grid gap-4 p-5 sm:grid-cols-2">
@@ -142,7 +145,7 @@
             </div>
         </div>
 
-        {{-- 2. Items --}}
+        {{-- 2. 明细，行由 claim-form.js 生成 --}}
         <div class="card">
             <div class="card-header">
                 <h2 class="card-title"><span class="grid h-6 w-6 place-items-center rounded-full bg-brand-600 text-xs font-bold text-white">2</span> What was bought</h2>
@@ -154,7 +157,7 @@
             </div>
         </div>
 
-        {{-- 3. Total --}}
+        {{-- 3. 合计 --}}
         <div class="card">
             <div class="card-header"><h2 class="card-title"><span class="grid h-6 w-6 place-items-center rounded-full bg-brand-600 text-xs font-bold text-white">3</span> Total</h2></div>
             <div class="grid gap-5 p-5 sm:grid-cols-2">
@@ -173,7 +176,7 @@
             </div>
         </div>
 
-        {{-- Action bar: stays visible at the bottom while scrolling --}}
+        {{-- 底部操作栏，滚动时固定在下方 --}}
         <div class="sticky bottom-20 z-20 lg:bottom-4">
             <div class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur sm:p-4">
                 <div class="min-w-0 flex-1">
@@ -188,7 +191,7 @@
                         <span class="hidden sm:inline">{{ $claim->isRejected() ? 'Resubmit for approval' : 'Submit for approval' }}</span>
                     </button>
                 @else
-                    {{-- Only an admin (claims.manage_all) can correct a claim that is waiting for approval. --}}
+                    {{-- 等待审批中的 claim 只有 admin（claims.manage_all）能修改 --}}
                     <a href="{{ route('claims.show', $claim) }}" class="btn-secondary">Cancel</a>
                     <button name="action" value="submit" class="btn-primary">Save Changes</button>
                 @endif
@@ -197,7 +200,7 @@
     </form>
 </div>
 
-{{-- One expense item (rendered by resources/js/claim-form.js) --}}
+{{-- 单行明细模板，由 resources/js/claim-form.js 复制使用 --}}
 <template id="item-row">
     <div class="item-row rounded-xl border border-slate-200 bg-slate-50/50 p-3">
         <div class="flex items-start gap-2">

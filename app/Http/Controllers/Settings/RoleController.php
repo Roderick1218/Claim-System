@@ -50,7 +50,8 @@ class RoleController extends Controller
     {
         $data = $this->validated($request, $role);
 
-        // Guard against locking everyone out of role management.
+        // 防止把自己锁在门外：拿掉 settings.roles 之前，至少要有另一个有用户的 role 还保留这个权限，
+        // 否则以后没人能再进来改 role。
         $rolesPermId = Permission::where('name', Permission::SETTINGS_ROLES)->value('id');
         if (! in_array($rolesPermId, $data['permissions'])
             && $role->permissions->contains('id', $rolesPermId)
@@ -86,6 +87,7 @@ class RoleController extends Controller
         ];
     }
 
+    /** audit log 用的快照，permission 排过序，diff 时才不会因为顺序不同被当成有改动 */
     private function snapshot(Role $role): array
     {
         return $role->only(['name', 'description']) + ['permissions' => $role->permissions->pluck('name')->sort()->values()->all()];

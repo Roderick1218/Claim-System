@@ -1,4 +1,4 @@
-{{-- New-claim steps: 1 Upload → 2 Review → 3 Submit. $step = current step (1-3) --}}
+{{-- 新建 claim 的 stepper：1 Upload → 2 Review → 3 Submit。$step = 当前步骤（1-3） --}}
 <ol class="flex items-center gap-2 text-xs font-semibold sm:gap-3 sm:text-sm">
     @foreach (['Upload', 'Review', 'Submit'] as $i => $label)
         @php $n = $i + 1; $done = $n < $step; $current = $n === $step; @endphp

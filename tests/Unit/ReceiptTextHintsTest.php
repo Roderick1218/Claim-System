@@ -7,7 +7,7 @@ use PHPUnit\Framework\TestCase;
 
 class ReceiptTextHintsTest extends TestCase
 {
-    /** Real Tesseract output (psm 4) from a KFC receipt photo. */
+    // KFC 收据照片的真实 Tesseract 输出（psm 4）
     private const KFC = <<<'TXT'
         Taxinvo iced 841-3
         25 Nov 16 10:22:28
@@ -48,7 +48,7 @@ class ReceiptTextHintsTest extends TestCase
 
     public function test_items_with_sst_added_as_tax_line_when_it_makes_the_total_add_up(): void
     {
-        // Real Tesseract output (cropped + 2x) of a KFC receipt photo, incl. OCR noise on the edges.
+        // KFC 收据照片裁切 + 放大 2x 后的真实 Tesseract 输出，边缘的 OCR 杂讯原样保留
         $text = <<<'TXT'
             | KFC RESTAURANTS (MALAYSIA) SDN BHD (123456-M)
             DATE: 15/10/2023 18:45
@@ -89,7 +89,7 @@ class ReceiptTextHintsTest extends TestCase
 
     public function test_add_ons_qty_after_name_and_split_decimal_total(): void
     {
-        // Real Tesseract output of a ZUS Coffee receipt (2026-10-10).
+        // ZUS Coffee 收据的真实 Tesseract 输出（2026-10-10）
         $text = <<<'TXT'
             DESCRIPTION QTY PRICE(RM)
             SPANISH LATTE (1) 1 15.90
@@ -129,7 +129,7 @@ class ReceiptTextHintsTest extends TestCase
 
     public function test_kopitiam_receipt_with_service_charge_service_tax_rounding_and_ewallet(): void
     {
-        // Real Tesseract output of an Iron House Kopitiam receipt (WhatsApp photo, 2026-10-12).
+        // Iron House Kopitiam 收据的真实 Tesseract 输出（WhatsApp 传来的照片，2026-10-12）
         $text = <<<'TXT'
             3 KOUPLTLAM
             Tronwil] Sda Bid
@@ -173,13 +173,13 @@ class ReceiptTextHintsTest extends TestCase
         $this->assertSame(['2', '2.20'], [$h['items'][1]['quantity'], $h['items'][1]['unit_price']]);
         $this->assertSame('8.17', $h['items'][8]['unit_price']);
         $this->assertSame('4.90', $h['items'][9]['tax_amount']);
-        $this->assertSame('0.02', $h['items'][10]['discount_amount']); // ~0.02 resolved to -0.02 by the total
+        $this->assertSame('0.02', $h['items'][10]['discount_amount']); // ~0.02 由总额判定为 -0.02
     }
 
     public function test_pos_receipt_with_per_each_prices_and_lost_decimal_points(): void
     {
-        // Real Tesseract output of a Family Noodle House receipt (FeedMe POS, 471px WhatsApp photo, 2026-10-12).
-        // Right-hand amounts lost their decimal points ("1760", "17 80", "400"); "(13.00/ea)" survived.
+        // Family Noodle House 收据的真实 Tesseract 输出（FeedMe POS，471px 的 WhatsApp 照片，2026-10-12）。
+        // 右边金额的小数点都丢了（"1760"、"17 80"、"400"），"(13.00/ea)" 倒是读得出来
         $text = <<<'TXT'
             FAMILY NOODLE HOUSE TAMAN EQUINE
             FAMILY 2 NOODLF HOUSE
@@ -239,7 +239,7 @@ class ReceiptTextHintsTest extends TestCase
 
     public function test_a4_invoice_table_rows_seller_address_and_misread_total(): void
     {
-        // Real Tesseract --psm 6 output of an A4 supplier invoice photo (2026-10-12).
+        // A4 供应商发票照片的真实 Tesseract --psm 6 输出（2026-10-12）
         $text = <<<'TXT'
             Systematic Electrical Engineering Sdn. Bhd.
             CeaNe | resTaaH
@@ -274,15 +274,15 @@ class ReceiptTextHintsTest extends TestCase
         $this->assertSame(['280.00', '175.00', '20.00'], array_column($h['items'], 'unit_price'));
         $this->assertSame('To supply & install with (1 no PHILIPS 100w led flood light, no PVC-LINK ABS junction box)', $h['items'][0]['item_name']);
         $this->assertStringStartsWith('To supply & install with (ITALY', $h['items'][1]['item_name']);
-        // Seller's address (above INVOICE), not the buyer's "41900 Sen Kembangan" below it.
+        // 要的是 INVOICE 上面的卖家地址，不是下面买家的 "41900 Sen Kembangan"
         $this->assertStringContainsString('Petaling', $h['locations'][0]);
         $this->assertStringNotContainsString('Kembangan', $h['locations'][0]);
     }
 
     public function test_invoice_rows_with_clean_item_codes_and_one_misread_amount(): void
     {
-        // Real Tesseract output of a re-taken photo of the same invoice (2026-10-12): codes read correctly
-        // ("A0032-1" must not be dropped as a reference number) and 840.00 OCR'd as 240.00.
+        // 同一张发票重拍后的真实 Tesseract 输出（2026-10-12）：编号读对了（"A0032-1" 不能被当成参考编号丢掉），
+        // 但 840.00 读成了 240.00
         $text = <<<'TXT'
             Systematic Electrical Engineering Sdn. Bhd.
             46000 Petaling Jaya,Sclangor Darul Ehsan.
@@ -312,11 +312,11 @@ class ReceiptTextHintsTest extends TestCase
 
     public function test_misread_amount_is_not_replaced_when_the_total_does_not_confirm_it(): void
     {
-        // qty × unit = 840 but printed 240, and the total (440 = 240 + 200) agrees with the PRINTED amounts → keep them.
+        // qty × 单价 = 840 但印的是 240，而总额 440 = 240 + 200 跟印出的金额一致，所以保留印出的金额
         $h = (new ReceiptTextHints)->find("To supply 3.00 280.00 240.00\nTo replace 10.00 20.00 200.00\nTotal Amount 440.00");
 
         $this->assertTrue($h['items_match_total']);
-        $this->assertSame(['80.00', '20.00'], array_column($h['items'], 'unit_price')); // 3 × 80.00 = printed 240.00
+        $this->assertSame(['80.00', '20.00'], array_column($h['items'], 'unit_price')); // 3 × 80.00 = 印出的 240.00
     }
 
     public function test_discount_line_is_applied_when_it_makes_the_total_match(): void
@@ -330,7 +330,7 @@ class ReceiptTextHintsTest extends TestCase
 
     public function test_handwritten_cash_bill_rows_are_recovered_using_qty_times_price(): void
     {
-        // Real Tesseract output of a handwritten cash bill (2026-10-10). "/=" = whole ringgit.
+        // 手写 cash bill 的真实 Tesseract 输出（2026-10-10），"/=" 表示整数令吉
         $text = <<<'TXT'
             PARTICULAR QUANTITY UNIT PRICE AMOUNT
             BUTIR-BUTIR KUANTITI HARGA NILAI
@@ -347,12 +347,12 @@ class ReceiptTextHintsTest extends TestCase
         $this->assertSame(['MINYAK GAMAT', 'SABUN HERBA', 'TONIK KESIHATAN'], array_column($h['items'], 'item_name'));
         $this->assertSame(['2', '3', '1'], array_column($h['items'], 'quantity'));
         $this->assertSame(['25.00', '15.00', '35.00'], array_column($h['items'], 'unit_price'));
-        $this->assertFalse($h['items_match_total']); // total unreadable → user must check / add discount & postage
+        $this->assertFalse($h['items_match_total']); // 总额读不出来，要用户自己核对，折扣和邮费也要自己加
     }
 
     public function test_cash_bill_row_that_does_not_multiply_out_is_rejected(): void
     {
-        // 2 × 25 ≠ 70 → a digit was misread; better to leave it for the user than to guess.
+        // 2 × 25 ≠ 70，肯定有一位读错，留给用户填，不去猜
         $this->assertSame([], (new ReceiptTextHints)->find('MINYAK GAMAT | 2 | 25/= | 70/=')['items']);
     }
 
@@ -368,12 +368,12 @@ class ReceiptTextHintsTest extends TestCase
         $h = (new ReceiptTextHints)->find("1 NASI LEMAK 8.50\n1 TEH TARIK 2.50\nTOTAL 12.00");
 
         $this->assertCount(2, $h['items']);
-        $this->assertFalse($h['items_match_total']); // the form will show the difference warning
+        $this->assertFalse($h['items_match_total']); // 表单会显示差额警告
     }
 
     public function test_location_is_read_from_the_shop_address(): void
     {
-        // Real Tesseract output of a KFC receipt (2026-10-10): address on the 2nd/3rd lines.
+        // KFC 收据的真实 Tesseract 输出（2026-10-10），地址在第 2、3 行
         $kfc = <<<'TXT'
             | KFC RESTAURANTS (MALAYSIA) SDN BHD (123456-M)
             | LOT LG-23, AOEN BIG SUBANG JAYA
@@ -389,7 +389,7 @@ class ReceiptTextHintsTest extends TestCase
             TXT;
         $hints = new ReceiptTextHints;
 
-        // Full address: street lines above the postcode line, stopping at the company name.
+        // 完整地址：postcode 那行加上面的街道行，到公司名为止
         $this->assertSame(['LOT LG-23, AOEN BIG SUBANG JAYA, NO 3 JALAN SS16/1, 47500 SUBANG JAYA, SELANGOR'], $hints->find($kfc)['locations']);
         $this->assertSame(['47500 SUBANG JAYA SELANGOR'], $hints->find("ABC\n47500 SUBANG JAYA SELANGOR")['locations']);
         $this->assertSame(['NO 12 JALAN MAWAR, 88300 KOTA KINABALU, SABAH'], $hints->find("NO 12 JALAN MAWAR\n88300 KOTA KINABALU\nSABAH")['locations']);
@@ -399,7 +399,7 @@ class ReceiptTextHintsTest extends TestCase
 
     public function test_full_address_from_first_kfc_photo_with_ocr_specks(): void
     {
-        // Real Tesseract output of the first KFC photo.
+        // 第一张 KFC 照片的真实 Tesseract 输出
         $text = "KFC (PENINSULAR MALAYSIA)\nSON. BHD. (26388-T)\nLvl 12 Tower 1,VSquare@PJ City Centre\nJalan Utara 46200 Petaling Jaya\nSelangor Daru! Ehsan\n\nGST 1D:000947937280";
 
         $this->assertSame(
@@ -413,7 +413,7 @@ class ReceiptTextHintsTest extends TestCase
         $hints = new ReceiptTextHints;
 
         $this->assertSame([], $hints->find("GST REG NO: 001234567890\nTEL: 03-12345 ABC\nRECEIPT NO: 001-0987654")['locations']);
-        $this->assertSame([], $hints->find("12345 NASI LEMAK 8.50\nTOTAL 8.50")['locations']); // item code + price
+        $this->assertSame([], $hints->find("12345 NASI LEMAK 8.50\nTOTAL 8.50")['locations']); // 这是物品编号 + 价钱，不是 postcode
         $this->assertSame([], $hints->find("ABC TRADING\nTOTAL 4.00")['locations']);
     }
 
@@ -421,9 +421,9 @@ class ReceiptTextHintsTest extends TestCase
     {
         $hints = new ReceiptTextHints;
 
-        // Company name split over two lines, "SDN" OCR'd as "SON", registration no. dropped.
+        // 公司名分成两行，"SDN" 读成 "SON"，注册号要去掉
         $this->assertSame(['KFC (PENINSULAR MALAYSIA) SDN. BHD'], $hints->find("www KFC COm.my\n\nKFC (PENINSULAR MALAYSIA)\nSON. BHD. (26988-T)")['merchants']);
-        // Registered company line preferred over the logo word at the top.
+        // 注册公司名优先于顶部的 logo 字
         $this->assertSame(['ZUS COFFEE (M) SDN BHD'], $hints->find("Be\nR\nZUS\ni COFFEE\n| ZUS COFFEE (M) SDN BHD\n(Reg No: 2019010XXXXX)")['merchants']);
         $this->assertSame(['KEDAI RUNCIT ABC SDN BHD'], $hints->find("KEDAI RUNCIT ABC SDN BHD\nNo 12, Jalan Klang")['merchants']);
         $this->assertSame(['ABC TRADING'], $hints->find("~ ee\nTel: 03-1234567\nABC TRADING")['merchants']);

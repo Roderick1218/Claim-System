@@ -26,6 +26,7 @@ class LoginController extends Controller
             throw ValidationException::withMessages(['email' => 'The email or password is incorrect.']);
         }
 
+        // 密码对了也要再看账号有没有被停用，停用的马上登出
         if (! Auth::user()->is_active) {
             Auth::logout();
             throw ValidationException::withMessages(['email' => 'Your account has been deactivated. Please contact the administrator.']);

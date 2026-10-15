@@ -1,3 +1,4 @@
+{{-- 收据的 OCR 状态 badge。需要 $status --}}
 @php
     $styles = [
         'pending' => ['bg-white/90 text-slate-700 ring-slate-200', 'Waiting to read'],

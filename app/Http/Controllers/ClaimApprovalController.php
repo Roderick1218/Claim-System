@@ -12,8 +12,9 @@ class ClaimApprovalController extends Controller
     public function __construct(private ClaimService $claims) {}
 
     /**
-     * Pending tab: claims waiting for this approver (never their own), oldest first.
-     * Approved / Rejected tabs: claims already decided, latest decision first.
+     * Pending tab 列出等这位 approver 审批的 claim，最旧的排前面，免得早交的一直被压着。
+     * 自己的 claim 一律排除，不能自己批自己。
+     * Approved / Rejected tab 是已经处理过的，最近审批的排前面。
      */
     public function index(Request $request)
     {
@@ -60,9 +61,12 @@ class ClaimApprovalController extends Controller
         try {
             $claim = $this->claims->review($claim, $request->user(), $approve, $note);
         } catch (DomainException $e) {
+            // 例如别的 approver 刚刚已经处理了这张
             return back()->with('error', $e->getMessage());
         }
 
+        // 批完（或 reject 完）直接跳到下一张待审的 claim，approver 一般是一次过清一批，
+        // 不用每次退回列表再点。条件跟 Pending tab 一样，没有了才回列表。
         $next = Claim::query()->visibleTo($request->user())
             ->where('claims.status', Claim::STATUS_SUBMITTED)
             ->where('claims.user_id', '<>', $request->user()->id)

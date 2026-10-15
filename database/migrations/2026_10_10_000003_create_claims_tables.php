@@ -8,18 +8,18 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // One row per month; locked with SELECT ... FOR UPDATE when issuing a claim number.
+        // claim 编号的流水号，每月一行。发号时 SELECT ... FOR UPDATE 锁住这一行，两个人同时开单也不会撞号
         Schema::create('claim_sequences', function (Blueprint $table) {
-            $table->string('period', 6)->primary(); // e.g. 202610
+            $table->string('period', 6)->primary(); // 例如 202610
             $table->unsignedInteger('last_number')->default(0);
         });
 
         Schema::create('claims', function (Blueprint $table) {
             $table->id();
             $table->string('claim_number', 30)->unique();
-            // restrictOnDelete: history must never disappear because a user/category/project was deleted.
+            // 用 restrictOnDelete：报销记录是账目，不能因为删了 user / category / project 就跟着消失
             $table->foreignId('user_id')->constrained()->restrictOnDelete();
-            // Nullable only so an incomplete draft can exist; required before a claim is recorded.
+            // 允许 null 只是为了让未填完的 draft 能先存，submit 时会强制要求
             $table->foreignId('category_id')->nullable()->constrained('claim_categories')->restrictOnDelete();
             $table->foreignId('project_id')->nullable()->constrained()->restrictOnDelete();
             $table->string('merchant_name')->nullable();
@@ -28,12 +28,12 @@ return new class extends Migration
             $table->string('location')->nullable();
             $table->string('business_purpose', 500)->nullable();
             $table->char('currency', 3)->default('MYR');
-            // Calculated by the backend from claim_items only.
+            // 这几个金额只由后端根据 claim_items 计算，不信任前端传来的数字
             $table->decimal('subtotal_amount', 12, 2)->default(0);
             $table->decimal('discount_amount', 12, 2)->default(0);
             $table->decimal('tax_amount', 12, 2)->default(0);
             $table->decimal('total_amount', 12, 2)->default(0);
-            // Total printed on the receipt as confirmed by the user; compared against total_amount.
+            // 收据上印的总额（用户确认过的），拿来跟 total_amount 对数
             $table->decimal('receipt_total_amount', 12, 2)->nullable();
             $table->text('notes')->nullable();
             $table->string('status', 20)->default('draft');
@@ -46,6 +46,7 @@ return new class extends Migration
             $table->index('status');
         });
 
+        // 收据文件和 OCR 结果。file_hash 是 sha256，用来找出重复上传的同一张收据
         Schema::create('receipts', function (Blueprint $table) {
             $table->id();
             $table->foreignId('claim_id')->constrained()->restrictOnDelete();
@@ -76,6 +77,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        // audit log 只新增不修改，所以只有 created_at
         Schema::create('audit_logs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();

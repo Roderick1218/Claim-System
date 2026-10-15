@@ -6,12 +6,11 @@ use App\Models\Claim;
 use App\Models\ClaimCategory;
 use Illuminate\Support\Collection;
 
-/**
- * Suggests a claim category for a receipt — no AI, two explainable steps:
- *  1. History: the category most often used for the same merchant on submitted / approved claims (gets better with use).
- *  2. Keywords: each active category's keywords (Settings → Claim Categories) found in the merchant name
- *     (worth 3) or anywhere in the receipt text (worth 1 each). The best category must score at least 2
- *     and beat the runner-up; otherwise nothing is suggested.
+/*
+ * 根据收据建议报销类别。不用 AI，规则简单、结果讲得出原因，分两步：
+ *   1. 历史：同一商家在 submitted / approved 单上最常用的类别，用得越多越准。
+ *   2. 关键词：各类别在 Settings → Claim Categories 设的关键词，出现在商家名算 3 分，
+ *      出现在收据其他地方每个算 1 分。最高分至少 2 分并且要赢过第二名才建议，不然留给用户自己选。
  */
 class CategoryGuesser
 {
@@ -26,7 +25,7 @@ class CategoryGuesser
         return $this->fromHistory($merchant, $categories) ?? $this->fromKeywords($merchant, $receiptText, $categories);
     }
 
-    /** Lower-case, no company suffixes / punctuation: "ZUS COFFEE (M) SDN. BHD." → "zus coffee m". */
+    // 去掉大小写、公司后缀和标点，同一家店不同写法才对得上："ZUS COFFEE (M) SDN. BHD." → "zus coffee m"
     public static function normaliseMerchant(?string $merchant): string
     {
         $m = mb_strtolower((string) $merchant);
@@ -40,9 +39,10 @@ class CategoryGuesser
     {
         $key = self::normaliseMerchant($merchant);
         if (mb_strlen($key) < 3) {
-            return null;
+            return null; // 名字太短容易误配
         }
 
+        // 只取最近 5000 张单在 PHP 里比对，商家名要先 normalise 才能比，没法直接用 SQL 查
         $counts = Claim::query()
             ->whereIn('status', [Claim::STATUS_SUBMITTED, Claim::STATUS_APPROVED])
             ->whereNotNull('merchant_name')
@@ -78,6 +78,7 @@ class CategoryGuesser
 
         foreach ($categories as $category) {
             foreach (self::keywordsOf($category) as $word) {
+                // 整词匹配，避免 "bus" 命中 "business" 这种情况
                 $pattern = '/(?<![\p{L}\p{N}])'.preg_quote($word, '/').'(?![\p{L}\p{N}])/u';
                 if (preg_match($pattern, $merchantText)) {
                     $scores[$category->id] = ($scores[$category->id] ?? 0) + 3;
@@ -98,7 +99,7 @@ class CategoryGuesser
         $best = $scores[$ids[0]];
         $second = $scores[$ids[1] ?? -1] ?? 0;
         if ($best < 2 || $best === $second) {
-            return null; // too weak or a tie — let the user choose
+            return null; // 分数太低或平手，交给用户选
         }
 
         $category = $categories->firstWhere('id', $ids[0]);
@@ -111,6 +112,7 @@ class CategoryGuesser
         ];
     }
 
+    // 关键词在后台是逗号或换行分隔的，单个字母的忽略
     /** @return array<int, string> */
     public static function keywordsOf(ClaimCategory $category): array
     {

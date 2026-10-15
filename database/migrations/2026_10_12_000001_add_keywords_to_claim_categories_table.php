@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('claim_categories', function (Blueprint $table) {
-            // Words that identify this category on a receipt (one per line), used to auto-select the category.
+            // 一行一个关键词，收据上出现就自动选这个 category
             $table->text('keywords')->nullable()->after('description');
         });
     }

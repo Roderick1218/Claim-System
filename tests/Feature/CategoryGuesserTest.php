@@ -39,7 +39,7 @@ class CategoryGuesserTest extends TestCase
     public function test_history_of_the_same_merchant_wins_over_keywords(): void
     {
         $user = $this->makeUser();
-        // The company records this "Coffee" supplier as Office Supplies (e.g. pantry stock).
+        // 公司把这家 "Coffee" 记在 Office Supplies（买 pantry 存货），以往记录要比关键词优先
         $this->makeClaim($user, ['merchant_name' => 'ZUS COFFEE (M) SDN BHD', 'category_id' => $this->category('Office Supplies')->id]);
 
         $result = app(CategoryGuesser::class)->guess('ZUS Coffee (M) Sdn. Bhd.', 'SPANISH LATTE 15.90');
@@ -57,6 +57,7 @@ class CategoryGuesserTest extends TestCase
         $this->assertSame('Client Entertainment', $this->guess('Red Box Karaoke', 'Room 3 hours, wine 2 bottles'));
     }
 
+    // 自动选的 category 只是建议，用户没按 Save 之前数据库里仍然是 null
     public function test_edit_page_auto_selects_category_highlighted_with_reason_but_does_not_save_it(): void
     {
         $this->ocr->text = "KFC RESTAURANTS (MALAYSIA) SDN BHD\nDATE: 05/10/2026 14:30\n1 PEPSI (L) 3.90\nTOTAL 3.90";

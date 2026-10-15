@@ -4,6 +4,7 @@
 
 @section('content')
 <div class="card">
+    {{-- Pending / Approved / Rejected tab --}}
     <div class="overflow-x-auto border-b border-slate-100 px-4 pt-4 sm:px-5">
         <div class="flex gap-6">
             @foreach (['pending' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected'] as $key => $label)
@@ -25,6 +26,7 @@
             @endif
         </div>
     @else
+        {{-- claim 列表，左边是第一张收据的缩略图 --}}
         <div class="divide-y divide-slate-100">
             @foreach ($pending as $c)
                 @php $first = $c->receipts->first(); @endphp

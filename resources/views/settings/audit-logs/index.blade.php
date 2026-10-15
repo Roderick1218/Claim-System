@@ -2,6 +2,7 @@
 @section('title', 'Audit Logs')
 
 @section('content')
+{{-- 筛选 --}}
 <form method="GET" class="card mb-4 flex flex-wrap items-end gap-3 p-4">
     <div>
         <label class="label">Action</label>
@@ -37,6 +38,7 @@
                     <td><code class="text-xs">{{ $log->action }}</code></td>
                     <td class="whitespace-nowrap">{{ $log->entity_type }} #{{ $log->entity_id }}</td>
                     <td class="max-w-xl">
+                        {{-- 展开后左边旧值、右边新值 --}}
                         @if ($log->old_values || $log->new_values)
                             <details>
                                 <summary class="cursor-pointer text-xs text-accent-600">{{ implode(', ', array_keys($log->new_values ?? $log->old_values ?? [])) }}</summary>

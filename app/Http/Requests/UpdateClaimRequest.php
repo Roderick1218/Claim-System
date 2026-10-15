@@ -9,6 +9,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
+// 保存草稿时放宽验证（允许先存一半），提交审批时才要求必填项齐全
 class UpdateClaimRequest extends FormRequest
 {
     private const MONEY = ['nullable', 'decimal:0,2', 'min:0', 'max:9999999.99'];
@@ -18,7 +19,7 @@ class UpdateClaimRequest extends FormRequest
         return $this->user()->can('update', $this->route('claim'));
     }
 
-    /** Full validation applies when submitting for approval, or when an approver corrects a submitted claim. */
+    // 提交审批时要完整验证；有 manage_all 的人修改已 submitted 的单也一样，不能改成残缺的单
     public function isSubmitting(): bool
     {
         return $this->input('action') === 'submit' || $this->claim()->status === Claim::STATUS_SUBMITTED;
@@ -26,7 +27,7 @@ class UpdateClaimRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        // Drop rows the user added but left completely empty.
+        // 用户加了行却什么都没填的直接丢掉（quantity 有默认值、receipt_id 是下拉，不算有填）
         $items = collect($this->input('items', []))
             ->filter(fn ($row) => is_array($row) && collect($row)->except(['receipt_id', 'quantity'])->filter(fn ($v) => trim((string) $v) !== '')->isNotEmpty())
             ->values()
@@ -40,7 +41,7 @@ class UpdateClaimRequest extends FormRequest
         $claim = $this->claim();
         $submitting = $this->isSubmitting();
 
-        // An inactive category / project may stay on a claim that already uses it, but cannot be newly chosen.
+        // 已停用的类别 / 项目不能新选，但旧单原本就用着的可以保留，不然旧单会存不了
         $activeOrCurrent = fn (string $table, ?int $currentId) => Rule::exists($table, 'id')->where(
             fn ($q) => $q->where('is_active', true)->when($currentId, fn ($q) => $q->orWhere('id', $currentId))
         );
@@ -99,8 +100,8 @@ class UpdateClaimRequest extends FormRequest
                     return;
                 }
 
-                // A single line may be negative (e.g. "Rounding Adj -0.02" or a "Diskaun" line),
-                // but the claim as a whole may not.
+                // 单行可以是负数（收据上常见 "Rounding Adj -0.02" 或 "Diskaun" 折扣行），
+                // 但整张单的总额不能是负的。错误挂在最后一条负数行上，用户比较容易找到
                 $calculator = app(ClaimCalculationService::class);
                 $lines = [];
                 $lastNegative = null;
@@ -124,6 +125,7 @@ class UpdateClaimRequest extends FormRequest
         ];
     }
 
+    // 请求里没带的字段补成 null，每次保存都完整覆盖这几个表头栏位
     public function claimData(): array
     {
         return $this->safe()->only([

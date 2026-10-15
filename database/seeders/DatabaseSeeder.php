@@ -9,9 +9,9 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            RolePermissionSeeder::class, // safe to re-run on production
-            ClaimCategorySeeder::class,  // safe to re-run on production
-            DemoDataSeeder::class,       // local / demo only
+            RolePermissionSeeder::class, // production 可重复跑
+            ClaimCategorySeeder::class,  // production 可重复跑
+            DemoDataSeeder::class,       // 只限本地 / demo
         ]);
     }
 }

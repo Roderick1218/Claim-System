@@ -1,3 +1,4 @@
+{{-- Active / Inactive badge。需要 $active --}}
 @if ($active)
     <span class="badge bg-brand-100 text-brand-700">Active</span>
 @else

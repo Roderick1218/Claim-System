@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    // claim 的两个分类维度：费用类别和所属项目，都在 Settings 里维护，不用了就设 is_active = false
     public function up(): void
     {
         Schema::create('claim_categories', function (Blueprint $table) {

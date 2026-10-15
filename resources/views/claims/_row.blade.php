@@ -1,4 +1,4 @@
-{{-- One claim as a tappable list row (used on phones and in short lists). $c = claim, $showOwner = bool --}}
+{{-- 单条 claim 的列表行，手机版和短列表用。需要 $c（claim），$showOwner 可选，是否显示提交人 --}}
 <a href="{{ route('claims.show', $c) }}" class="flex items-center gap-3 px-4 py-3.5 transition hover:bg-slate-50 sm:px-5">
     @include('claims._avatar', ['c' => $c])
     <div class="min-w-0 flex-1">

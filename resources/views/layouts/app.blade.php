@@ -12,6 +12,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen bg-[#f5f7fb] text-slate-800 antialiased">
+{{-- 通知数量和菜单项在这里统一算好，下面直接用 --}}
 @php
     $u = auth()->user();
     $canApprove = $u->hasPermission('claims.approve');
@@ -26,6 +27,7 @@
         $myDraftCount ? [route('claims.index', ['status' => 'draft']), 'pencil', 'bg-slate-100 text-slate-600', "{$myDraftCount} draft(s) not submitted yet"] : null,
     ]);
 
+    // 每项：[名称, route, 高亮匹配, icon, 是否显示, 红点数量]
     $nav = [
         ['Dashboard', 'dashboard', ['dashboard'], 'home', true, 0],
         ['My Claims', 'claims.index', ['claims.index', 'claims.show', 'claims.edit'], 'receipt', true, 0],
@@ -47,7 +49,7 @@
 @endphp
 
 <div class="flex min-h-screen">
-    {{-- Sidebar (desktop) / drawer (mobile) --}}
+    {{-- 侧边栏（电脑）/ 抽屉菜单（手机） --}}
     <div id="drawer-backdrop" class="fixed inset-0 z-40 hidden bg-slate-900/50 lg:hidden" onclick="toggleDrawer(false)"></div>
     <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 flex w-72 -translate-x-full flex-col bg-gradient-to-b from-navy-900 to-navy-950 text-white transition-transform duration-200 lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:translate-x-0">
         <a href="{{ route('dashboard') }}" class="mx-4 mt-4 mb-2 block rounded-2xl bg-white px-4 py-3 shadow-lg shadow-black/20">
@@ -67,6 +69,7 @@
                 </a>
             @endforeach
 
+            {{-- Settings 子菜单，只列出有权限的项目 --}}
             @if ($settingsNav)
                 <details class="group" @if ($inSettings) open @endif>
                     <summary class="nav-link cursor-pointer list-none {{ $inSettings ? 'text-white' : '' }}">
@@ -84,6 +87,7 @@
             @endif
         </nav>
 
+        {{-- 用户资料：改密码 / 登出 --}}
         <details class="relative m-4 mt-0" data-dropdown>
             <summary class="flex cursor-pointer list-none items-center gap-3 rounded-xl px-2 py-2 hover:bg-white/5">
                 <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-accent-500 to-brand-500 text-sm font-bold text-white ring-2 ring-white/20">{{ $initials }}</span>
@@ -104,7 +108,7 @@
     </aside>
 
     <div class="flex min-w-0 flex-1 flex-col">
-        {{-- Top bar: search, notifications, profile --}}
+        {{-- 顶部栏：搜索 + 通知 + 头像 --}}
         <header class="sticky top-0 z-30 border-b border-slate-200/70 bg-white/90 backdrop-blur">
             <div class="flex h-16 items-center gap-3 px-4 lg:h-[72px] lg:px-8">
                 <button type="button" class="btn-ghost -ml-2 p-2 lg:hidden" onclick="toggleDrawer(true)" aria-label="Open menu"><x-icon name="menu" class="h-6 w-6" /></button>
@@ -141,7 +145,7 @@
         </header>
 
         <main class="mx-auto w-full max-w-7xl flex-1 px-4 pt-5 pb-28 lg:px-8 lg:pt-8 lg:pb-10">
-            {{-- Page heading --}}
+            {{-- 页面标题 --}}
             <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
                 <div class="min-w-0">
                     <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-[28px]">
@@ -152,6 +156,7 @@
                 @hasSection('actions')<div class="flex shrink-0 flex-wrap items-center gap-2">@yield('actions')</div>@endif
             </div>
 
+            {{-- flash 提示和表单错误 --}}
             @if (session('success'))
                 <div class="alert border-brand-200 bg-brand-50 text-brand-900" data-autohide>
                     <x-icon name="check" class="mt-0.5 h-5 w-5 text-brand-600" /><div class="flex-1">{{ session('success') }}</div>
@@ -182,10 +187,11 @@
     </div>
 </div>
 
-{{-- Bottom navigation (phones) --}}
+{{-- 手机底部导航 --}}
 <nav class="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
     <div class="grid grid-cols-4 text-[11px] font-medium">
         @php
+            // 有审批权限的显示 Approvals，没有的显示 New
             $tabs = [
                 ['Home', 'dashboard', ['dashboard'], 'home', 0],
                 ['Claims', 'claims.index', ['claims.*'], 'receipt', 0],
@@ -208,7 +214,7 @@
     </div>
 </nav>
 
-{{-- Full-screen "please wait" overlay, used by forms with data-loading="message" (e.g. receipt upload + OCR). --}}
+{{-- 全屏 loading 遮罩，带 data-loading="提示文字" 的表单提交时显示（例如上传收据跑 OCR） --}}
 <div id="loading-overlay" class="fixed inset-0 z-[60] hidden place-items-center bg-navy-950/60 backdrop-blur-sm">
     <div class="mx-4 w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl">
         <div class="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-brand-100 border-t-brand-500"></div>
@@ -218,6 +224,7 @@
 </div>
 
 <script>
+    // 手机抽屉菜单开关，电脑版 sidebar 固定显示所以直接跳过
     function toggleDrawer(open) {
         if (window.matchMedia('(min-width: 1024px)').matches) return;
         document.getElementById('sidebar').classList.toggle('-translate-x-full', !open);
@@ -229,8 +236,9 @@
             document.getElementById('loading-overlay').classList.replace('hidden', 'grid');
         });
     });
+    // 成功提示 6 秒后自动消失
     document.querySelectorAll('[data-autohide]').forEach((el) => setTimeout(() => el.remove(), 6000));
-    // Close open dropdown menus (<details data-dropdown>) when clicking elsewhere.
+    // 点击其他地方时关掉已展开的下拉菜单（<details data-dropdown>）
     document.addEventListener('click', (e) => {
         document.querySelectorAll('details[data-dropdown][open]').forEach((d) => { if (!d.contains(e.target)) d.open = false; });
     });

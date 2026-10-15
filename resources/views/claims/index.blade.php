@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @php $seesOthers = auth()->user()->hasAnyPermission(['claims.view_all', 'claims.view_department']); @endphp
 @section('title', $seesOthers ? 'Claims' : 'My Claims')
 @section('subtitle', $seesOthers ? 'Your claims and the claims you are allowed to see.' : 'Track your claim status and history.')
@@ -15,7 +15,7 @@
 @endphp
 
 <div class="card">
-    {{-- Status tabs --}}
+    {{-- 状态 tab，带数量 --}}
     <div class="overflow-x-auto border-b border-slate-100 px-4 pt-4 sm:px-5">
         <div class="flex gap-6">
             @foreach ($tabs as $key => $label)

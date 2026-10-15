@@ -1,4 +1,4 @@
-{{-- Draft → Submitted → Approved (or Rejected) --}}
+{{-- claim 进度条：Draft → Submitted → Approved（或 Rejected）。需要 $claim --}}
 @php
     $rejected = $claim->isRejected();
     $steps = [

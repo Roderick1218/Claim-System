@@ -62,15 +62,23 @@ class ReportController extends Controller
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF"); // UTF-8 BOM so Excel shows Chinese / Malay text correctly
             fputcsv($out, [
-                'Claim Number', 'Expense Date', 'Expense Time', 'Merchant', 'Category', 'Project', 'Employee',
+                'No', 'Claim Number', 'Expense Date', 'Expense Time', 'Merchant', 'Category', 'Project', 'Employee',
                 'Employee Code', 'Department', 'Business Purpose', 'Location', 'Currency', 'Subtotal',
                 'Discount', 'Tax', 'Total', 'Receipt Total', 'Status', 'Created At',
                 'Submitted At', 'Reviewed By', 'Reviewed At', 'Review Note',
             ]);
 
-            $query->chunk(500, function ($claims) use ($out) {
+            $no = 0;
+            $totals = ['subtotal_amount' => '0', 'discount_amount' => '0', 'tax_amount' => '0', 'total_amount' => '0', 'receipt_total_amount' => '0'];
+
+            $query->chunk(500, function ($claims) use ($out, &$no, &$totals) {
                 foreach ($claims as $c) {
+                    foreach ($totals as $column => $sum) {
+                        $totals[$column] = bcadd($sum, (string) ($c->{$column} ?? 0), 2);
+                    }
+
                     fputcsv($out, array_map([$this, 'csvSafe'], [
+                        ++$no,
                         $c->claim_number,
                         $c->expense_date?->format('Y-m-d'),
                         $c->expense_time ? substr($c->expense_time, 0, 5) : '',
@@ -97,6 +105,14 @@ class ReportController extends Controller
                     ]));
                 }
             });
+
+            // Same 24 columns as the header: label under No, sums under the amount columns.
+            fputcsv($out, [
+                'Grand Total', '', '', '', '', '', '', '', '', '', '', '', '',
+                $totals['subtotal_amount'], $totals['discount_amount'], $totals['tax_amount'],
+                $totals['total_amount'], $totals['receipt_total_amount'],
+                '', '', '', '', '', '',
+            ]);
 
             fclose($out);
         }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);

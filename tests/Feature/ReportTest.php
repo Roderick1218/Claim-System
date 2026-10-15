@@ -57,6 +57,23 @@ class ReportTest extends TestCase
         $this->assertStringNotContainsString($opsClaim->claim_number, $csv);
     }
 
+    public function test_export_numbers_rows_and_ends_with_grand_total(): void
+    {
+        $admin = $this->makeUser('admin');
+        $this->makeClaim($admin, ['total_amount' => '10.50']);
+        $this->makeClaim($admin, ['total_amount' => '4.25']);
+
+        $csv = $this->actingAs($admin)->get(route('reports.export'))->streamedContent();
+        $rows = array_map('str_getcsv', array_filter(explode("\n", trim(substr($csv, 3)))));
+
+        $this->assertSame('No', $rows[0][0]);
+        $this->assertSame(['1', '2'], [$rows[1][0], $rows[2][0]]);
+        $grand = end($rows);
+        $this->assertSame('Grand Total', $grand[0]);
+        $this->assertCount(count($rows[0]), $grand);
+        $this->assertSame('14.75', $grand[array_search('Total', $rows[0])]);
+    }
+
     public function test_csv_cells_are_protected_against_formula_injection(): void
     {
         $admin = $this->makeUser('admin');
